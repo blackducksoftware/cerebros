@@ -354,6 +354,9 @@ func main() {
 
 	queue := util.NewPriorityQueue()
 
+	//baseRepoPath := "/Users/hammer/go/src/github.com/blackducksoftware"
+	baseRepoPath := "/data"
+
 	type job struct {
 		RepoPath                   string
 		BucketName                 string
@@ -362,31 +365,31 @@ func main() {
 	}
 
 	job1 := job{
-		RepoPath:                   cleanPath("/Users/hammer/go/src/github.com/blackducksoftware/JavaVulnerableLab"),
+		RepoPath:                   cleanPath(fmt.Sprintf("%s%s", baseRepoPath, "/JavaVulnerableLab")),
 		BucketName:                 "indian-terminator",
 		PathToBucketServiceAccount: cleanPath("/Users/hammer/Downloads/polaris-dev-233821-b8a3ac17ca0f.json"),
 		StoragePathInBucket:        cleanPath("bucket-idir-job1"),
 	}
 	job2 := job{
-		RepoPath:                   cleanPath("/Users/hammer/go/src/github.com/blackducksoftware/hub-fortify-parser"),
+		RepoPath:                   cleanPath(fmt.Sprintf("%s%s", baseRepoPath, "/hub-fortify-parser")),
 		BucketName:                 "indian-terminator",
 		PathToBucketServiceAccount: cleanPath("/Users/hammer/Downloads/polaris-dev-233821-b8a3ac17ca0f.json"),
 		StoragePathInBucket:        cleanPath("bucket-idir-job2"),
 	}
 	job3 := job{
-		RepoPath:                   cleanPath("/Users/hammer/go/src/github.com/blackducksoftware/rabbitmq"),
+		RepoPath:                   cleanPath(fmt.Sprintf("%s%s", baseRepoPath, "/rabbitmq")),
 		BucketName:                 "indian-terminator",
 		PathToBucketServiceAccount: cleanPath("/Users/hammer/Downloads/polaris-dev-233821-b8a3ac17ca0f.json"),
 		StoragePathInBucket:        cleanPath("bucket-idir-job3"),
 	}
 	job4 := job{
-		RepoPath:                   cleanPath("/Users/hammer/go/src/github.com/blackducksoftware/polaris-deploy-sanity"),
+		RepoPath:                   cleanPath(fmt.Sprintf("%s%s", baseRepoPath, "/polaris-deploy-sanity")),
 		BucketName:                 "indian-terminator",
 		PathToBucketServiceAccount: cleanPath("/Users/hammer/Downloads/polaris-dev-233821-b8a3ac17ca0f.json"),
 		StoragePathInBucket:        cleanPath("bucket-idir-job4"),
 	}
 	job5 := job{
-		RepoPath:                   cleanPath("/Users/hammer/go/src/github.com/blackducksoftware/synopsys-operator"),
+		RepoPath:                   cleanPath(fmt.Sprintf("%s%s", baseRepoPath, "/synopsys-operator")),
 		BucketName:                 "indian-terminator",
 		PathToBucketServiceAccount: cleanPath("/Users/hammer/Downloads/polaris-dev-233821-b8a3ac17ca0f.json"),
 		StoragePathInBucket:        cleanPath("bucket-idir-job5"),
