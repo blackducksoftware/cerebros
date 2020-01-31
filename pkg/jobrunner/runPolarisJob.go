@@ -1,10 +1,12 @@
-package main
+package jobrunner
 
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/blackducksoftware/cerebros/pkg/util"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -16,8 +18,23 @@ import (
 	"strings"
 	"time"
 
-	"github.com/blackducksoftware/cerebros/pkg/util"
+	"cloud.google.com/go/storage"
 )
+
+
+type Job struct {
+	FromBucket string `json:"fromBucket"`
+	FromBucketPath string `json:"fromBucketPath"`
+
+	ToBucket string `json:"toBucket"`
+	ToBucketPath string `json:"toBucketPath"`
+}
+
+type PolarisConfig struct {
+	PolarisURL      string
+	PolarisEmailID  string
+	PolarisPassword string
+}
 
 func execSh(shellCmd string) (string, error) {
 	execCmd := exec.Command("sh", "-c", shellCmd)
@@ -38,6 +55,7 @@ func cleanPath(rawPath string) string {
 }
 
 func downloadPolarisCli(envURL string, authHeader map[string]string) (string, error) {
+	// TODO change this to linux
 	apiURL := fmt.Sprintf("%s/api/tools/polaris_cli-macosx.zip", envURL)
 	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
@@ -181,6 +199,7 @@ func configurePolarisCliWithAccessToken(envURL, token string) error {
 	os.Setenv("POLARIS_SERVER_URL", envURL)
 	os.Setenv("POLARIS_ACCESS_TOKEN", token)
 
+	// TODO use linux
 	cmd := "polaris_cli-macosx-1.5.5064/bin/polaris configure"
 	if output, err := execSh(cmd); err != nil {
 		fmt.Printf("error Output: %s\n", output)
@@ -263,12 +282,27 @@ func copyToGSBucket(bucketName, serviceAccountPath, bucketFilePath, localFilePat
 		return err
 	}
 
-	cmd := exec.Command("gsutil", "cp", "-r", localFilePath, fmt.Sprintf("gs://%s%s", bucketName, bucketFilePath))
-	fmt.Printf("%s\n", cmd)
-	if info, err := cmd.CombinedOutput(); err != nil {
-		fmt.Printf("error out: %s\n", info)
+	ctx := context.Background()
+
+	f, err := os.Open(localFilePath)
+	if err != nil {
 		return err
 	}
+	defer f.Close()
+
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	wc := client.Bucket(bucketName).Object(bucketFilePath).NewWriter(ctx)
+	if _, err = io.Copy(wc, f); err != nil {
+		return err
+	}
+	if err := wc.Close(); err != nil {
+		return err
+	}
+
 
 	return nil
 }
@@ -279,11 +313,28 @@ func copyFromGSBucket(bucketName, serviceAccountPath, bucketFilePath, localFileP
 		return err
 	}
 
-	cmd := exec.Command("gsutil", "cp", fmt.Sprintf("gs://%s%s", bucketName, bucketFilePath), fmt.Sprintf("%s", localFilePath))
-	if info, err := cmd.CombinedOutput(); err != nil {
-		fmt.Printf("error out: %s\n", info)
+	ctx := context.Background()
+
+	f, err := os.Create(localFilePath)
+	if err != nil {
 		return err
 	}
+	defer f.Close()
+
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	wc, err := client.Bucket(bucketName).Object(bucketFilePath).NewReader(ctx)
+	if err != nil {
+		return err
+	}
+
+	if _, err = io.Copy(f, wc); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -322,101 +373,62 @@ func downloadAndSetupPolarisCli(envURL, emailID, password string) (string, error
 	return polarisCliPath, nil
 }
 
-func captureBuildAndPushToBucket(repoPath, polarisCliPath, bucketName, pathToBucketServiceAccount, storagePathInBucket string) error {
+func captureBuildAndPushToBucket(fromBucket, fromBucketPath,  polarisCliPath, bucketName, pathToBucketServiceAccount, storagePathInBucket string) error {
+	// Create a temporary directpry
+	// TODO change this. Use emptyDir
+	tmpDir, err := ioutil.TempDir("/Users/jeremyd/hhh", "scan")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	fmt.Printf("Downloading from GS Bucket\n")
+	
+	// Download the zip archive
+	tmpFile := path.Join(tmpDir,"master.zip")
+	if err := copyFromGSBucket(fromBucket, pathToBucketServiceAccount, fromBucketPath,tmpFile ); err != nil {
+		return err
+	}
+
+	
+	// Unzip then remove
+	if err := util.Unzip(tmpFile, tmpDir); err != nil {
+		return err
+	}
+
+
 	fmt.Printf("Running Polaris Capture\n")
-	err := polarisCliCapture(repoPath, polarisCliPath)
+	if err := polarisCliCapture(tmpDir, polarisCliPath); err != nil {
+		return err
+	}
+
+	pathToIdir := fmt.Sprintf("%s%s", tmpDir, cleanPath(".synopsys/polaris/data/coverity/2019.06-5/idir"))
+	pathToIdirZip := filepath.Join(tmpDir, "idir.zip")
+	fmt.Printf("Path to IDIR: %s\n", pathToIdir)
+
+	if err := util.Zipit(pathToIdir, pathToIdirZip); err != nil {
+		return err
+	}
+
+	fmt.Printf("Copying to GS Bucket\n")
+	if err := copyToGSBucket(bucketName, pathToBucketServiceAccount, storagePathInBucket, pathToIdirZip); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Start(job Job, polarisConfig PolarisConfig, pathToBucketServiceAccount string) error {
+	// coverityVersion := "2019.06"
+
+	polarisCliPath, err := downloadAndSetupPolarisCli(polarisConfig.PolarisURL, polarisConfig.PolarisEmailID, polarisConfig.PolarisPassword)
 	if err != nil {
 		return err
 	}
 
-	pathToIdir := fmt.Sprintf("%s%s", repoPath, cleanPath(".synopsys/polaris/data/coverity/2019.06-5/idir"))
-	fmt.Printf("Path to IDIR: %s\n", pathToIdir)
-
-	fmt.Printf("Copying to GS Bucket\n")
-	err = copyToGSBucket(bucketName, pathToBucketServiceAccount, storagePathInBucket, pathToIdir)
+	err = captureBuildAndPushToBucket(job.FromBucket,job.FromBucketPath, polarisCliPath, job.ToBucket, pathToBucketServiceAccount, job.ToBucketPath)
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func main() {
-	// coverityVersion := "2019.06"
-	polarisURL := ""
-	polarisEmailID := ""
-	poalrisPassword := ""
-	polarisCliPath, err := downloadAndSetupPolarisCli(polarisURL, polarisEmailID, poalrisPassword)
-	if err != nil {
-		fmt.Printf("[ERROR] %s\n", err)
-		return
-	}
-
-	queue := util.NewPriorityQueue()
-
-	//baseRepoPath := "/Users/hammer/go/src/github.com/blackducksoftware"
-	baseRepoPath := "/data"
-
-	type job struct {
-		RepoPath                   string
-		BucketName                 string
-		PathToBucketServiceAccount string
-		StoragePathInBucket        string
-	}
-
-	job1 := job{
-		RepoPath:                   cleanPath(fmt.Sprintf("%s%s", baseRepoPath, "/JavaVulnerableLab")),
-		BucketName:                 "indian-terminator",
-		PathToBucketServiceAccount: cleanPath("/Users/hammer/Downloads/polaris-dev-233821-b8a3ac17ca0f.json"),
-		StoragePathInBucket:        cleanPath("bucket-idir-job1"),
-	}
-	job2 := job{
-		RepoPath:                   cleanPath(fmt.Sprintf("%s%s", baseRepoPath, "/hub-fortify-parser")),
-		BucketName:                 "indian-terminator",
-		PathToBucketServiceAccount: cleanPath("/Users/hammer/Downloads/polaris-dev-233821-b8a3ac17ca0f.json"),
-		StoragePathInBucket:        cleanPath("bucket-idir-job2"),
-	}
-	job3 := job{
-		RepoPath:                   cleanPath(fmt.Sprintf("%s%s", baseRepoPath, "/rabbitmq")),
-		BucketName:                 "indian-terminator",
-		PathToBucketServiceAccount: cleanPath("/Users/hammer/Downloads/polaris-dev-233821-b8a3ac17ca0f.json"),
-		StoragePathInBucket:        cleanPath("bucket-idir-job3"),
-	}
-	job4 := job{
-		RepoPath:                   cleanPath(fmt.Sprintf("%s%s", baseRepoPath, "/polaris-deploy-sanity")),
-		BucketName:                 "indian-terminator",
-		PathToBucketServiceAccount: cleanPath("/Users/hammer/Downloads/polaris-dev-233821-b8a3ac17ca0f.json"),
-		StoragePathInBucket:        cleanPath("bucket-idir-job4"),
-	}
-	job5 := job{
-		RepoPath:                   cleanPath(fmt.Sprintf("%s%s", baseRepoPath, "/synopsys-operator")),
-		BucketName:                 "indian-terminator",
-		PathToBucketServiceAccount: cleanPath("/Users/hammer/Downloads/polaris-dev-233821-b8a3ac17ca0f.json"),
-		StoragePathInBucket:        cleanPath("bucket-idir-job5"),
-	}
-
-	queue.Add("job1", 2, job1)
-	queue.Add("job2", 3, job2)
-	queue.Add("job3", 1, job3)
-	queue.Add("job4", 7, job4)
-	queue.Add("job5", 7, job5)
-
-	for {
-		fmt.Printf("Queue has %d jobs...\n", queue.Size())
-		if queue.IsEmpty() {
-			return
-		}
-		jInterface, err := queue.Pop()
-		if err != nil {
-			fmt.Printf("[ERROR] %s", err)
-			return
-		}
-		if jInterface != nil {
-			j := jInterface.(job)
-			err = captureBuildAndPushToBucket(j.RepoPath, polarisCliPath, j.BucketName, j.PathToBucketServiceAccount, j.StoragePathInBucket)
-			if err != nil {
-				fmt.Printf("[ERROR] %s\n", err)
-			}
-		}
-	}
 }
