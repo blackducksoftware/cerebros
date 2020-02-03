@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	util "github.com/blackducksoftware/cerebros/pkg/util"
+	util "github.com/blackducksoftware/cerebros/go/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
 

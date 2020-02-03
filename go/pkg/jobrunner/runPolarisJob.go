@@ -6,7 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/blackducksoftware/cerebros/pkg/util"
+	"github.com/blackducksoftware/cerebros/go/pkg/util"
 	"io"
 	"io/ioutil"
 	"net/http"

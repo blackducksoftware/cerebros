@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/blackducksoftware/cerebros/pkg/jobrunner"
+	"github.com/blackducksoftware/cerebros/go/pkg/jobrunner"
 	"github.com/streadway/amqp"
 	"log"
 	"os"
