@@ -1,5 +1,5 @@
 # cerebros
 
-cd cmd/queue
+cd go/cmd/queue
 
 go run queue.go
