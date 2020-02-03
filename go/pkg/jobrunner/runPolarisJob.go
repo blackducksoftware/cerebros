@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"github.com/blackducksoftware/cerebros/go/pkg/util"
@@ -21,12 +22,11 @@ import (
 	"cloud.google.com/go/storage"
 )
 
-
 type Job struct {
-	FromBucket string `json:"fromBucket"`
+	FromBucket     string `json:"fromBucket"`
 	FromBucketPath string `json:"fromBucketPath"`
 
-	ToBucket string `json:"toBucket"`
+	ToBucket     string `json:"toBucket"`
 	ToBucketPath string `json:"toBucketPath"`
 }
 
@@ -56,7 +56,7 @@ func cleanPath(rawPath string) string {
 
 func downloadPolarisCli(envURL string, authHeader map[string]string) (string, error) {
 	// TODO change this to linux
-	apiURL := fmt.Sprintf("%s/api/tools/polaris_cli-macosx.zip", envURL)
+	apiURL := fmt.Sprintf("%s/api/tools/polaris_cli-linux64.zip", envURL)
 	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
 		return "", err
@@ -64,7 +64,15 @@ func downloadPolarisCli(envURL string, authHeader map[string]string) (string, er
 	for key, val := range authHeader {
 		req.Header.Set(key, val)
 	}
-	client := &http.Client{Timeout: time.Second * 10}
+
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := http.Client{
+		Timeout:   time.Second * 10,
+		Transport: tr,
+	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
@@ -138,13 +146,20 @@ func authenticateUserAndGetCookie(envURL, emailID, password string) (string, err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	client := http.Client{}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := http.Client{
+		Timeout:   time.Second * 10,
+		Transport: tr,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("POST request failed: %s", err)
 	}
+	defer resp.Body.Close()
+
 	if resp.StatusCode == 200 {
-		defer resp.Body.Close()
 		return resp.Header["Set-Cookie"][0], nil
 	}
 	return "", fmt.Errorf("bad status code: %+v - %+v - %+v", resp.StatusCode, resp.Status, resp.Body)
@@ -169,7 +184,13 @@ func getPolarisAccessToken(envURL string, authHeader map[string]string) (*string
 	req.Header.Set("Content-Type", authHeader["Content-Type"])
 	req.Header.Set("Cookie", authHeader["Cookie"])
 
-	client := http.Client{}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := http.Client{
+		Timeout:   time.Second * 10,
+		Transport: tr,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("POST request failed: %s", err)
@@ -181,8 +202,9 @@ func getPolarisAccessToken(envURL string, authHeader map[string]string) (*string
 			} `json:"attributes"`
 		} `json:"data"`
 	}
+	defer resp.Body.Close()
+
 	if resp.StatusCode == 200 || resp.StatusCode == 201 {
-		defer resp.Body.Close()
 		body, _ := ioutil.ReadAll(resp.Body)
 		bs := RespFormat{}
 		err := json.Unmarshal(body, &bs)
@@ -200,7 +222,7 @@ func configurePolarisCliWithAccessToken(envURL, token string) error {
 	os.Setenv("POLARIS_ACCESS_TOKEN", token)
 
 	// TODO use linux
-	cmd := "polaris_cli-macosx-1.5.5064/bin/polaris configure"
+	cmd := "polaris_cli-linux64-1.5.5064/bin/polaris configure"
 	if output, err := execSh(cmd); err != nil {
 		fmt.Printf("error Output: %s\n", output)
 		return err
@@ -303,7 +325,6 @@ func copyToGSBucket(bucketName, serviceAccountPath, bucketFilePath, localFilePat
 		return err
 	}
 
-
 	return nil
 }
 
@@ -373,37 +394,36 @@ func downloadAndSetupPolarisCli(envURL, emailID, password string) (string, error
 	return polarisCliPath, nil
 }
 
-func captureBuildAndPushToBucket(fromBucket, fromBucketPath,  polarisCliPath, bucketName, pathToBucketServiceAccount, storagePathInBucket string) error {
+func captureBuildAndPushToBucket(fromBucket, fromBucketPath, polarisCliPath, bucketName, pathToBucketServiceAccount, storagePathInBucket string) error {
 	// Create a temporary directpry
 	// TODO change this. Use emptyDir
-	tmpDir, err := ioutil.TempDir("/Users/jeremyd/hhh", "scan")
+	tmpDir, err := ioutil.TempDir("/tmp", "scan")
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(tmpDir)
 
 	fmt.Printf("Downloading from GS Bucket\n")
-	
+
 	// Download the zip archive
-	tmpFile := path.Join(tmpDir,"master.zip")
-	if err := copyFromGSBucket(fromBucket, pathToBucketServiceAccount, fromBucketPath,tmpFile ); err != nil {
+	tmpFile := path.Join(tmpDir, "master.zip")
+	if err := copyFromGSBucket(fromBucket, pathToBucketServiceAccount, fromBucketPath, tmpFile); err != nil {
 		return err
 	}
 
-	
 	// Unzip then remove
 	if err := util.Unzip(tmpFile, tmpDir); err != nil {
 		return err
 	}
-
 
 	fmt.Printf("Running Polaris Capture\n")
 	if err := polarisCliCapture(tmpDir, polarisCliPath); err != nil {
 		return err
 	}
 
-	pathToIdir := fmt.Sprintf("%s%s", tmpDir, cleanPath(".synopsys/polaris/data/coverity/2019.06-5/idir"))
-	pathToIdirZip := filepath.Join(tmpDir, "idir.zip")
+	//pathToIdir := fmt.Sprintf("%s%s", tmpDir, cleanPath(".synopsys/polaris/data/coverity/2019.06-5/idir"))
+	pathToIdir := fmt.Sprintf("%s%s", tmpDir, cleanPath(".synopsys/polaris"))
+	pathToIdirZip := filepath.Join(tmpDir, "polaris.zip")
 	fmt.Printf("Path to IDIR: %s\n", pathToIdir)
 
 	if err := util.Zipit(pathToIdir, pathToIdirZip); err != nil {
@@ -414,6 +434,7 @@ func captureBuildAndPushToBucket(fromBucket, fromBucketPath,  polarisCliPath, bu
 	if err := copyToGSBucket(bucketName, pathToBucketServiceAccount, storagePathInBucket, pathToIdirZip); err != nil {
 		return err
 	}
+	fmt.Printf("Scan Complete\n")
 	return nil
 }
 
@@ -425,7 +446,7 @@ func Start(job Job, polarisConfig PolarisConfig, pathToBucketServiceAccount stri
 		return err
 	}
 
-	err = captureBuildAndPushToBucket(job.FromBucket,job.FromBucketPath, polarisCliPath, job.ToBucket, pathToBucketServiceAccount, job.ToBucketPath)
+	err = captureBuildAndPushToBucket(job.FromBucket, job.FromBucketPath, polarisCliPath, job.ToBucket, pathToBucketServiceAccount, job.ToBucketPath)
 	if err != nil {
 		return err
 	}

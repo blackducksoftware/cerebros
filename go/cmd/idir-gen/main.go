@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"github.com/blackducksoftware/cerebros/go/pkg/jobrunner"
 	"github.com/streadway/amqp"
+	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 )
 
 func main() {
@@ -16,6 +18,21 @@ func main() {
 		PolarisURL:      getEnv("POLARIS_URL", "https://onprem-dev.dev.polaris.synopsys.com"),
 		PolarisEmailID:  getEnv("POLARIS_EMAIL", "jeremyd@synopsys.com"),
 		PolarisPassword: getEnv("POLARIS_PASSWORD", "Synopsys123$"),
+	}
+
+	env := os.Getenv("CA_PATH")
+	if len(env) > 0 {
+		input, err := ioutil.ReadFile(env)
+		if err != nil {
+			panic(err)
+		}
+		err = ioutil.WriteFile("/usr/local/share/ca-certificates/newCa.crt", input, 0644)
+		if err != nil {
+			panic(err)
+		}
+		if err := exec.Command("update-ca-certificates").Run(); err != nil {
+			panic(err)
+		}
 	}
 
 	fmt.Println("Worker starting...")
@@ -64,7 +81,9 @@ func main() {
 			d.Ack(false)
 		}
 		fmt.Printf("Starting Scan %s/%s\n", job.FromBucket, job.FromBucketPath)
-		jobrunner.Start(job, polarisConfig, serviceAccountPath)
+		if err := jobrunner.Start(job, polarisConfig, serviceAccountPath); err != nil {
+			log.Print(err)
+		}
 		d.Ack(false)
 	}
 }
@@ -75,7 +94,7 @@ func failOnError(err error, msg string) {
 	}
 }
 
-func getEnv(name string, defaultValue string) string{
+func getEnv(name string, defaultValue string) string {
 	if value, ok := os.LookupEnv(name); ok {
 		return value
 	}
