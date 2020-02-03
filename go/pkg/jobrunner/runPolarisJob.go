@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"github.com/blackducksoftware/cerebros/go/pkg/util"
@@ -65,12 +64,8 @@ func downloadPolarisCli(envURL string, authHeader map[string]string) (string, er
 		req.Header.Set(key, val)
 	}
 
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
 	client := http.Client{
 		Timeout:   time.Second * 10,
-		Transport: tr,
 	}
 
 	resp, err := client.Do(req)
@@ -146,12 +141,8 @@ func authenticateUserAndGetCookie(envURL, emailID, password string) (string, err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
 	client := http.Client{
 		Timeout:   time.Second * 10,
-		Transport: tr,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -184,12 +175,8 @@ func getPolarisAccessToken(envURL string, authHeader map[string]string) (*string
 	req.Header.Set("Content-Type", authHeader["Content-Type"])
 	req.Header.Set("Cookie", authHeader["Cookie"])
 
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
 	client := http.Client{
 		Timeout:   time.Second * 10,
-		Transport: tr,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
