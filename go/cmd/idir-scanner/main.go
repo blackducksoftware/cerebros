@@ -11,7 +11,7 @@ import (
 	"os/exec"
 )
 
-const queueName = "idir-gen"
+const queueName = "idir-scanner"
 
 func main() {
 	rabbitMQHost := getEnv("AMQP_URL", "amqp://guest:guest@localhost:5672/")
@@ -78,12 +78,13 @@ func main() {
 	for d := range msgs {
 		log.Printf("Received a message: %s", d.Body)
 
-		var job jobrunner.IdirGenJob
+		var job jobrunner.IdirScanJob
 		if err := json.Unmarshal(d.Body, &job); err != nil {
 			d.Ack(false)
+			continue
 		}
 		fmt.Printf("Starting Scan %s/%s\n", job.FromBucket, job.FromBucketPath)
-		if err := jobrunner.GenIdirAndUpload(job, polarisConfig, serviceAccountPath); err != nil {
+		if err := jobrunner.ScanIdir(job, polarisConfig, serviceAccountPath); err != nil {
 			log.Print(err)
 		}
 		d.Ack(false)

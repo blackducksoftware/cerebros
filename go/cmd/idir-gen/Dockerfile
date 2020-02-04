@@ -54,6 +54,10 @@ RUN apt-get install -qy perl cpanminus \
 # remove download archive files
 RUN apt-get clean
 
+COPY build/polaris /usr/local/bin/polaris
+COPY build/polaris_submit /usr/local/bin/polaris_submit
+COPY build/polaris_wait /usr/local/bin/polaris_wait
+
 COPY build/idir_gen_linux ./runPolarisJob
 
 CMD ["./runPolarisJob"]

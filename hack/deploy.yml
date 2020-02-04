@@ -72,6 +72,7 @@ spec:
       labels:
         component: cerebros-worker
     spec:
+      hostname: "cerebros"
       volumes:
       - name: gcp-service-account
         secret:
@@ -98,6 +99,57 @@ spec:
             value: "/tmp/secrets/gcp"
           - name: CA_PATH
             value: "/tmp/secrets/ca"
+          name: cerebros-worker
+          volumeMounts:
+            - mountPath: /tmp/secrets
+              name: gcp-service-account
+          resources:
+            limits:
+              cpu: 1000m
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: idir-scanner
+  name: idir-scanner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: idir-scanner
+  template:
+    metadata:
+      labels:
+        component: idir-scanner
+    spec:
+      hostname: "cerebros"
+      volumes:
+        - name: gcp-service-account
+          secret:
+            defaultMode: 420
+            secretName: gcp-service-account
+      hostAliases:
+        # Set this in external or internal ingress IP
+        - ip: "35.232.28.6"
+          hostnames:
+            - "onprem-dev.dev.polaris.synopsys.com"
+      containers:
+        - image: jdartigalongue/idir-scanner:latest
+          imagePullPolicy: Always
+          env:
+            - name: AMQP_URL
+              value: "amqp://guest:guest@rabbitmq:5672/"
+            - name: POLARIS_URL
+              value: "https://onprem-dev.dev.polaris.synopsys.com"
+            - name: POLARIS_EMAIL
+              value: "jeremyd@synopsys.com"
+            - name: POLARIS_PASSWORD
+              value: "Synopsys123$"
+            - name: GCP_SERVICE_ACCOUNT_PATH
+              value: "/tmp/secrets/gcp"
+            - name: CA_PATH
+              value: "/tmp/secrets/ca"
           name: cerebros-worker
           volumeMounts:
             - mountPath: /tmp/secrets

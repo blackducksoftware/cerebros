@@ -19,14 +19,22 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+
+	"gopkg.in/yaml.v3"
 )
 
-type Job struct {
+
+type IdirGenJob struct {
 	FromBucket     string `json:"fromBucket"`
 	FromBucketPath string `json:"fromBucketPath"`
 
 	ToBucket     string `json:"toBucket"`
 	ToBucketPath string `json:"toBucketPath"`
+}
+
+type IdirScanJob struct {
+	FromBucket     string `json:"fromBucket"`
+	FromBucketPath string `json:"fromBucketPath"`
 }
 
 type PolarisConfig struct {
@@ -65,7 +73,7 @@ func downloadPolarisCli(envURL string, authHeader map[string]string) (string, er
 	}
 
 	client := http.Client{
-		Timeout:   time.Second * 10,
+		Timeout: time.Second * 10,
 	}
 
 	resp, err := client.Do(req)
@@ -142,7 +150,7 @@ func authenticateUserAndGetCookie(envURL, emailID, password string) (string, err
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	client := http.Client{
-		Timeout:   time.Second * 10,
+		Timeout: time.Second * 10,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -176,7 +184,7 @@ func getPolarisAccessToken(envURL string, authHeader map[string]string) (*string
 	req.Header.Set("Cookie", authHeader["Cookie"])
 
 	client := http.Client{
-		Timeout:   time.Second * 10,
+		Timeout: time.Second * 10,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -408,9 +416,8 @@ func captureBuildAndPushToBucket(fromBucket, fromBucketPath, polarisCliPath, buc
 		return err
 	}
 
-	//pathToIdir := fmt.Sprintf("%s%s", tmpDir, cleanPath(".synopsys/polaris/data/coverity/2019.06-5/idir"))
-	pathToIdir := fmt.Sprintf("%s%s", tmpDir, cleanPath(".synopsys/polaris"))
-	pathToIdirZip := filepath.Join(tmpDir, "polaris.zip")
+	pathToIdir := fmt.Sprintf("%s%s", tmpDir, cleanPath(".synopsys/polaris/data/coverity/2019.06-5/idir"))
+	pathToIdirZip := filepath.Join(tmpDir, "idir.zip")
 	fmt.Printf("Path to IDIR: %s\n", pathToIdir)
 
 	if err := util.Zipit(pathToIdir, pathToIdirZip); err != nil {
@@ -425,7 +432,7 @@ func captureBuildAndPushToBucket(fromBucket, fromBucketPath, polarisCliPath, buc
 	return nil
 }
 
-func Start(job Job, polarisConfig PolarisConfig, pathToBucketServiceAccount string) error {
+func GenIdirAndUpload(job IdirGenJob, polarisConfig PolarisConfig, pathToBucketServiceAccount string) error {
 	// coverityVersion := "2019.06"
 
 	polarisCliPath, err := downloadAndSetupPolarisCli(polarisConfig.PolarisURL, polarisConfig.PolarisEmailID, polarisConfig.PolarisPassword)
@@ -438,5 +445,82 @@ func Start(job Job, polarisConfig PolarisConfig, pathToBucketServiceAccount stri
 		return err
 	}
 
+	return nil
+}
+
+func ScanIdir(job IdirScanJob, polarisConfig PolarisConfig, pathToBucketServiceAccount string) error {
+	// coverityVersion := "2019.06"
+
+	polarisCliPath, err := downloadAndSetupPolarisCli(polarisConfig.PolarisURL, polarisConfig.PolarisEmailID, polarisConfig.PolarisPassword)
+	if err != nil {
+		return err
+	}
+
+	// Create a temporary directpry
+	// TODO change this. Use emptyDir
+	tmpDir, err := ioutil.TempDir("/tmp", "scan")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	idirPath := path.Join(tmpDir, "idir")
+
+
+	fmt.Printf("Downloading from GS Bucket\n")
+	// Download the zip archive
+	tmpFile := path.Join(tmpDir, "idir.zip")
+	if err := copyFromGSBucket(job.FromBucket, pathToBucketServiceAccount, job.FromBucketPath, tmpFile); err != nil {
+		return err
+	}
+
+	// Unzip then remove
+	if err := util.Unzip(tmpFile, tmpDir); err != nil {
+		return err
+	}
+	os.Remove(tmpFile)
+
+	//
+	cmd := fmt.Sprintf("cd %s;%s/polaris setup", tmpDir, polarisCliPath)
+	fmt.Printf("Running Polaris Setup\n")
+	fmt.Printf("%s\n", cmd)
+	if output, err := execSh(cmd); err != nil {
+		return fmt.Errorf("%s - %s", output, err)
+	}
+
+	polarisYmlPath := path.Join(tmpDir, "polaris.yml")
+	content, err := ioutil.ReadFile(polarisYmlPath)
+	if err != nil{
+		return err
+	}
+
+	CoverityConfig := make(map[string]interface{})
+	if err := yaml.Unmarshal(content, CoverityConfig); err != nil {
+		return err
+	}
+	// TODO - Need to get the CoverityConfig struct from somewhere :/
+	CoverityConfig["capture"] = map[string]interface{}{
+		"coverity": map[string]interface{}{
+			"idirCapture": map[string]interface{}{
+				"idirPath": idirPath,
+			},
+		},
+	}
+	CoverityConfigYaml, err := yaml.Marshal(CoverityConfig)
+	if err != nil{
+		return err
+	}
+	if err := ioutil.WriteFile(polarisYmlPath, CoverityConfigYaml, os.FileMode(700)); err != nil {
+		return err
+	}
+
+	cmd = fmt.Sprintf("cd %s;%s/polaris analyze", tmpDir, polarisCliPath)
+	fmt.Printf("Running Polaris analyze\n")
+	fmt.Printf("%s\n", cmd)
+	if output, err := execSh(cmd); err != nil {
+		return fmt.Errorf("%s - %s", output, err)
+	}
+
+	fmt.Printf("Done\n")
 	return nil
 }
