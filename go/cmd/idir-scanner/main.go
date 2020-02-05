@@ -11,24 +11,23 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"path/filepath"
 )
 
-const queueName = "idir-gen"
 
-type IdirGenJob struct {
+
+type IdirScanJob struct {
 	FromBucket     string `json:"fromBucket"`
 	FromBucketPath string `json:"fromBucketPath"`
-
-	ToBucket     string `json:"toBucket"`
-	ToBucketPath string `json:"toBucketPath"`
 }
+
+
+const queueName = "idir-scanner"
 
 func main() {
 	rabbitMQHost := getEnv("AMQP_URL", "amqp://guest:guest@localhost:5672/")
 	serviceAccountPath := getEnv("GCP_SERVICE_ACCOUNT_PATH", "/Users/jeremyd/Downloads/polaris-dev-233821-b8a3ac17ca0f.json")
 	polarisConfig := jobrunner.PolarisConfig{
-		PolarisURL:   getEnv("POLARIS_URL", "https://onprem-dev.dev.polaris.synopsys.com"),
+		PolarisURL:      getEnv("POLARIS_URL", "https://onprem-dev.dev.polaris.synopsys.com"),
 		PolarisToken: getEnv("POLARIS_TOKEN", ""),
 	}
 
@@ -58,11 +57,11 @@ func main() {
 
 	q, err := ch.QueueDeclare(
 		queueName, // name
-		true,      // durable
-		false,     // delete when unused
-		false,     // exclusive
-		false,     // no-wait
-		nil,       // arguments
+		true,   // durable
+		false,  // delete when unused
+		false,  // exclusive
+		false,  // no-wait
+		nil,    // arguments
 	)
 	failOnError(err, "Failed to declare a queue")
 
@@ -91,44 +90,45 @@ func main() {
 
 	// TODO - Use go routines if we ever want to process multiple scans in parallel
 	for d := range msgs {
-		var job IdirGenJob
+		var job IdirScanJob
 		if err := json.Unmarshal(d.Body, &job); err != nil {
-			log.Print(err)
 			d.Ack(false)
 			continue
 		}
-		fmt.Printf("Starting IdirGenJob %s/%s\n", job.FromBucket, job.FromBucketPath)
+		fmt.Printf("Starting IdirScanJob  %s/%s\n", job.FromBucket, job.FromBucketPath)
 		if err := process(job, serviceAccountPath, jb); err != nil {
 			log.Print(err)
 			d.Ack(false)
 			continue
 		}
 		fmt.Printf("Completed Scan %s/%s\n", job.FromBucket, job.FromBucketPath)
+
 		d.Ack(false)
 	}
 }
 
-func process(job IdirGenJob, serviceAccountPath string, jb *jobrunner.PolarisScanner) error {
-	// Download and extract
-	tmpDir, err := downloadAndExtractToTmpDir(job, serviceAccountPath)
+func process(job IdirScanJob, serviceAccountPath string, jb *jobrunner.PolarisScanner) error {
+	tmpDir, err := ioutil.TempDir("/tmp", "scan")
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(tmpDir)
 
-	// Capture
-	idirPath, err := jb.Capture(tmpDir)
-	if err != nil {
+	idirPath := path.Join(tmpDir, "idir")
+
+	// Download the zip archive
+	tmpFile := path.Join(tmpDir, "idir.zip")
+	if err := util.CopyFromGSBucket(job.FromBucket, serviceAccountPath, job.FromBucketPath, tmpFile); err != nil {
 		return err
 	}
 
-	pathToIdirZip := filepath.Join(tmpDir, "idir.zip")
-	if err := util.Zipit(idirPath, pathToIdirZip); err != nil {
+	// Unzip then remove
+	if err := util.Unzip(tmpFile, tmpDir); err != nil {
 		return err
 	}
+	os.Remove(tmpFile)
 
-	//Upload
-	if err := util.CopyToGSBucket(job.ToBucket, serviceAccountPath, job.ToBucketPath, pathToIdirZip); err != nil {
+	if err := jb.Scan(tmpDir, idirPath); err != nil {
 		return err
 	}
 
@@ -146,25 +146,4 @@ func getEnv(name string, defaultValue string) string {
 		return value
 	}
 	return defaultValue
-}
-
-func downloadAndExtractToTmpDir(job IdirGenJob, svcPath string) (string, error) {
-	tmpDir, err := ioutil.TempDir("/tmp", "scan")
-	if err != nil {
-		return "", err
-	}
-
-	fmt.Printf("Downloading from GS Bucket\n")
-
-	// Download the zip archive
-	tmpFile := path.Join(tmpDir, "master.zip")
-	if err := util.CopyFromGSBucket(job.FromBucket, svcPath, job.FromBucketPath, tmpFile); err != nil {
-		return "", err
-	}
-
-	// Unzip then remove
-	if err := util.Unzip(tmpFile, tmpDir); err != nil {
-		return "", err
-	}
-	return tmpDir, nil
 }
