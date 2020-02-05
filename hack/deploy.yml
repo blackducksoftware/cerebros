@@ -91,10 +91,8 @@ spec:
             value: "amqp://guest:guest@rabbitmq:5672/"
           - name: POLARIS_URL
             value: "https://onprem-dev.dev.polaris.synopsys.com"
-          - name: POLARIS_EMAIL
-            value: "jeremyd@synopsys.com"
-          - name: POLARIS_PASSWORD
-            value: "Synopsys123$"
+          - name: POLARIS_TOKEN
+            value: "h5ubjqckhh5dl2uuaborprq06o58l57g0lf601vv09vbh7jll4s0"
           - name: GCP_SERVICE_ACCOUNT_PATH
             value: "/tmp/secrets/gcp"
           - name: CA_PATH
@@ -142,10 +140,8 @@ spec:
               value: "amqp://guest:guest@rabbitmq:5672/"
             - name: POLARIS_URL
               value: "https://onprem-dev.dev.polaris.synopsys.com"
-            - name: POLARIS_EMAIL
-              value: "jeremyd@synopsys.com"
-            - name: POLARIS_PASSWORD
-              value: "Synopsys123$"
+            - name: POLARIS_TOKEN
+              value: "h5ubjqckhh5dl2uuaborprq06o58l57g0lf601vv09vbh7jll4s0"
             - name: GCP_SERVICE_ACCOUNT_PATH
               value: "/tmp/secrets/gcp"
             - name: CA_PATH
