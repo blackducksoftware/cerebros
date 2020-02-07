@@ -25,8 +25,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/blackducksoftware/perceptor/pkg/api"
-	resty "github.com/go-resty/resty"
+	resty "github.com/go-resty/resty/v2"
 	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -36,10 +35,12 @@ const (
 	finishedScanPath = "finishedscan"
 )
 
+// TODO move this into the scan queue package
+
 // PerceptorClientInterface ...
 type PerceptorClientInterface interface {
-	GetNextImage() (*api.NextImage, error)
-	PostFinishedScan(scan *api.FinishedScanClientJob) error
+	GetNextImage() (*NextImage, error)
+	PostFinishedScan(scan *FinishedScanClientJob) error
 }
 
 // PerceptorClient ...
@@ -63,38 +64,38 @@ func NewPerceptorClient(host string, port int) *PerceptorClient {
 }
 
 // GetNextImage ...
-func (pc *PerceptorClient) GetNextImage() (*api.NextImage, error) {
+func (pc *PerceptorClient) GetNextImage() (*NextImage, error) {
 	url := fmt.Sprintf("http://%s:%d/%s", pc.Host, pc.Port, nextImagePath)
-	nextImage := api.NextImage{}
+	nextImage := NextImage{}
 	log.Debugf("about to issue post request to url %s", url)
 	resp, err := pc.Resty.R().
 		SetHeader("Content-Type", "application/json").
 		SetResult(&nextImage).
 		Post(url)
 	log.Debugf("received resp %+v and error %+v from url %s", resp, err, url)
-	recordHTTPStats(nextImagePath, resp.StatusCode())
+	//recordHTTPStats(nextImagePath, resp.StatusCode())
 	if err != nil {
-		recordScannerError("unable to get next image")
+		//recordScannerError("unable to get next image")
 		return nil, errors.Annotatef(err, "unable to get next image")
 	} else if (resp.StatusCode() < 200) || (resp.StatusCode() >= 300) {
-		recordScannerError("unable to get next image -- bad status code")
+		//recordScannerError("unable to get next image -- bad status code")
 		return nil, fmt.Errorf("unable to get next image; body %s and status code %d", string(resp.Body()), resp.StatusCode())
 	}
 	return &nextImage, nil
 }
 
 // PostFinishedScan ...
-func (pc *PerceptorClient) PostFinishedScan(scan *api.FinishedScanClientJob) error {
+func (pc *PerceptorClient) PostFinishedScan(scan *FinishedScanClientJob) error {
 	url := fmt.Sprintf("http://%s:%d/%s", pc.Host, pc.Port, finishedScanPath)
 	log.Debugf("about to issue post request %+v to url %s", scan, url)
 	resp, err := pc.Resty.R().SetBody(scan).Post(url)
 	log.Debugf("received resp %+v, status code %d, error %+v from url %s", resp, resp.StatusCode(), err, url)
-	recordHTTPStats(finishedScanPath, resp.StatusCode())
+	//recordHTTPStats(finishedScanPath, resp.StatusCode())
 	if err != nil {
-		recordScannerError("unable to post finished scan")
+		//recordScannerError("unable to post finished scan")
 		return errors.Annotatef(err, "unable to post finished scan")
 	} else if (resp.StatusCode() < 200) || (resp.StatusCode() >= 300) {
-		recordScannerError("unable to post finished scan -- bad status code")
+		//recordScannerError("unable to post finished scan -- bad status code")
 		return fmt.Errorf("unable to post finished scan; body %s and status code %d", string(resp.Body()), resp.StatusCode())
 	}
 	return errors.Trace(err)

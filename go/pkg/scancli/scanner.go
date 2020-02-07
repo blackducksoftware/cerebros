@@ -23,6 +23,8 @@ package scancli
 
 import (
 	"fmt"
+	"github.com/blackducksoftware/cerebros/go/pkg/scancli/docker"
+	"github.com/blackducksoftware/cerebros/go/pkg/scancli/hubcli"
 	"os"
 	"time"
 
@@ -35,24 +37,24 @@ const (
 	requestScanJobPause = 20 * time.Second
 )
 
-// Manager ...
-type Manager struct {
-	scanner         *Scanner
+// Scanner ...
+type Scanner struct {
+	imageScanner         *hubcli.ImageScanner
 	perceptorClient *PerceptorClient
 	stop            <-chan struct{}
 }
 
-// NewManager ...
-func NewManager(config *Config, stop <-chan struct{}) (*Manager, error) {
-	log.Infof("instantiating Manager with config %+v", config)
+// NewScanner ...
+func NewScanner(config *Config, stop <-chan struct{}) (*Scanner, error) {
+	log.Infof("instantiating Scanner with config %+v", config)
 
 	hubPassword, ok := os.LookupEnv(config.Hub.PasswordEnvVar)
 	if !ok {
 		return nil, fmt.Errorf("unable to get Hub password: environment variable %s not set", config.Hub.PasswordEnvVar)
 	}
 
-	imagePuller := NewImageFacadeClient(config.ImageFacade.GetHost(), config.ImageFacade.Port)
-	scanClient, err := NewScanClient(
+	imagePuller := docker.NewImagePuller(config.ImageFacade.PrivateDockerRegistries)
+	scanClient, err := hubcli.NewScanClient(
 		config.Hub.User,
 		hubPassword,
 		config.Hub.Port)
@@ -60,14 +62,14 @@ func NewManager(config *Config, stop <-chan struct{}) (*Manager, error) {
 		return nil, errors.Annotatef(err, "unable to instantiate hub scan client")
 	}
 
-	return &Manager{
-		scanner:         NewScanner(imagePuller, scanClient, config.Scanner.GetImageDirectory(), stop),
-		perceptorClient: NewPerceptorClient(config.Perceptor.Host, config.Perceptor.Port),
+	return &Scanner{
+		imageScanner:         hubcli.NewImageScanner(imagePuller, scanClient, config.Scanner.GetImageDirectory(), stop),
+		perceptorClient: NewPerceptorClient(config.ScanQueue.Host, config.ScanQueue.Port),
 		stop:            stop}, nil
 }
 
 // StartRequestingScanJobs will start asking for work
-func (sm *Manager) StartRequestingScanJobs() {
+func (sm *Scanner) StartRequestingScanJobs() {
 	log.Infof("starting to request scan jobs")
 	go func() {
 		for {
@@ -81,7 +83,7 @@ func (sm *Manager) StartRequestingScanJobs() {
 	}()
 }
 
-func (sm *Manager) requestAndRunScanJob() {
+func (sm *Scanner) requestAndRunScanJob() {
 	log.Debug("requesting scan job")
 	nextImage, err := sm.perceptorClient.GetNextImage()
 	if err != nil {
@@ -95,7 +97,7 @@ func (sm *Manager) requestAndRunScanJob() {
 
 	log.Infof("processing scan job %+v", nextImage)
 
-	err = sm.scanner.ScanFullDockerImage(nextImage.ImageSpec)
+	err = sm.imageScanner.ScanFullDockerImage(nextImage.ImageSpec)
 	errorString := ""
 	if err != nil {
 		log.Errorf("scan error: %s", err.Error())

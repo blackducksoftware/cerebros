@@ -23,11 +23,10 @@ package scancli
 
 import (
 	"fmt"
-	"github.com/blackducksoftware/cerebros/go/pkg/perceptor-scanner/hubcli"
 	"net/http"
-	"os"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -44,22 +43,19 @@ func RunScanner(configPath string, stop <-chan struct{}) {
 	}
 	log.SetLevel(level)
 
-	// TODO
-	imageFacade := NewImageFacade(config.ImageFacade.PrivateDockerRegistries, config.ImageFacade.CreateImagesOnly, imagePullerType, stop)
-
-	prometheus.Unregister(prometheus.NewProcessCollector(os.Getpid(), ""))
+	prometheus.Unregister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
 	prometheus.Unregister(prometheus.NewGoCollector())
 
-	manager, err := hubcli.NewManager(config, stop)
+	scanner, err := NewScanner(config, stop)
 	if err != nil {
 		panic(err)
 	}
-	manager.StartRequestingScanJobs()
+	scanner.StartRequestingScanJobs()
 
-	http.Handle("/metrics", prometheus.Handler())
+	http.Handle("/metrics", promhttp.Handler())
 
 	addr := fmt.Sprintf(":%d", config.Scanner.Port)
-	log.Infof("successfully instantiated manager %+v, serving on %s", manager, addr)
+	log.Infof("successfully instantiated scanner %+v, serving on %s", scanner, addr)
 	go func() {
 		http.ListenAndServe(addr, nil)
 	}()

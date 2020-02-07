@@ -34,7 +34,6 @@ type HubConfig struct {
 	User           string
 	PasswordEnvVar string
 	Port           int
-	PrivateDockerRegistries []docker.RegistryAuth
 
 	CreateImagesOnly bool
 }
@@ -50,6 +49,11 @@ type ScannerConfig struct {
 	ImageDirectory          string
 	Port                    int
 	HubClientTimeoutSeconds int
+}
+
+// ImageFacadeConfig ...
+type ImageFacadeConfig struct {
+	PrivateDockerRegistries []docker.RegistryAuth
 }
 
 // Config ...
