@@ -25,10 +25,10 @@ import (
 	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	)
+)
 
 type testImage struct {
-	image     Image
+	image        Image
 	registryAuth *RegistryAuth
 }
 
