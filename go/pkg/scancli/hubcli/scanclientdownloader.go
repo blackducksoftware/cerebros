@@ -23,6 +23,7 @@ package hubcli
 
 import (
 	"fmt"
+	"github.com/blackducksoftware/cerebros/go/pkg/util"
 	"os"
 	"time"
 
@@ -80,7 +81,7 @@ func DownloadScanClient(osType OSType, cliRootPath string, hubHost string, hubUs
 	log.Infof("successfully downloaded scan client to %s", cliInfo.ScanCliZipPath())
 
 	// 6. unzip scan client
-	err = unzip(cliInfo.ScanCliZipPath(), cliInfo.RootPath)
+	err = util.Unzip(cliInfo.ScanCliZipPath(), cliInfo.RootPath)
 	if err != nil {
 		return nil, errors.Annotatef(err, "unable to unzip %s", cliInfo.ScanCliZipPath())
 	}

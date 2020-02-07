@@ -28,6 +28,10 @@ github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+Ce
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/blackducksoftware/cerebros v0.0.0-20200205180404-b35e83b39af7 h1:k0DU6sarc1gMPnoxAfgrO92F2NGfiKO2Tqc4VwR0t1E=
+github.com/blackducksoftware/hub-client-go v0.9.5 h1:S5176kMCq9hvTQ8BKGLQ+o01jg8aTRYr/oFuOGJQEHA=
+github.com/blackducksoftware/hub-client-go v0.9.5/go.mod h1:aS3p1foLdcqiO7A41Fepm5UzvvtANZjvMZn3BhWG8ZU=
+github.com/blackducksoftware/perceptor v2.2.4+incompatible h1:fsvjzurxAi6IAJ6/+2pHGHc3+P5EiuPqtxGgjB6fwWc=
+github.com/blackducksoftware/perceptor v2.2.4+incompatible/go.mod h1:YbZBt/yjhFeh27DMsDAKFFBxH+tlu41gbn9Lb7cDT4Q=
 github.com/blackducksoftware/perceptor-scanner v2.2.3+incompatible h1:GtC7NDV2Ci7S7mqHIrAESHGDfZXyDw1c5bJoWFcb13M=
 github.com/blackducksoftware/perceptor-scanner v2.2.3+incompatible/go.mod h1:1MvCEmKM9lVPNzqzGQiTZEMwZiifJkpovFKe21wr6R4=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
@@ -103,6 +107,7 @@ github.com/onsi/gomega v1.7.1/go.mod h1:XdKZgCCFLUoM/7CFJVPcG8C1xQ1AJ0vpAezJrB7J
 github.com/onsi/gomega v1.9.0 h1:R1uwffexN6Pr340GtYRIdZmAiN4J+iw6WG4wog1DUXg=
 github.com/onsi/gomega v1.9.0/go.mod h1:Ho0h+IUsWyvy1OpqCwxlQ/21gkhVunqlU8fDGcoTdcA=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
+github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/prometheus/client_golang v0.9.1/go.mod h1:7SWBe2y4D6OKWSNQJUaRYU/AaXPKyh/dDVn+NZz0KFw=

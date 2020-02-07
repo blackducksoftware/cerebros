@@ -4,6 +4,8 @@ go 1.13
 
 require (
 	cloud.google.com/go/storage v1.5.0
+	github.com/blackducksoftware/hub-client-go v0.9.5
+	github.com/blackducksoftware/perceptor v2.2.4+incompatible
 	github.com/blackducksoftware/perceptor-scanner v2.2.3+incompatible
 	github.com/juju/errors v0.0.0-20190930114154-d42613fe1ab9
 	github.com/onsi/ginkgo v1.12.0
