@@ -62,14 +62,14 @@ func (image *Image) urlEncodedName() string {
 func (image *Image) createURL() string {
 	// TODO v1.24 refers to the docker version.  figure out how to avoid hard-coding this
 	// TODO can probably use the docker api code for this
-	return fmt.Sprintf("http://localhost/v1.24/images/create?fromImage=%s", urlEncodedName(image))
+	return fmt.Sprintf("http://localhost/v1.24/images/create?fromImage=%s", image.urlEncodedName())
 }
 
 // getURL returns the URL used for hitting the docker daemon's get endpoint
 func (image *Image) getURL() string {
-	return fmt.Sprintf("http://localhost/v1.24/images/%s/get", urlEncodedName(image))
+	return fmt.Sprintf("http://localhost/v1.24/images/%s/get", image.urlEncodedName())
 }
 
 func (image *Image) inspectURL() string {
-	return fmt.Sprintf("http://localhost/v1.24/images/%s/json", urlEncodedName(image))
+	return fmt.Sprintf("http://localhost/v1.24/images/%s/json", image.urlEncodedName())
 }

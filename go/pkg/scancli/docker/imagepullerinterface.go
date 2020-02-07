@@ -21,11 +21,9 @@ under the License.
 
 package docker
 
-import "github.com/blackducksoftware/cerebros/go/pkg/scancli/interfaces"
-
 // ImagePuller defines the interface for image puller
 type ImagePullerInterface interface {
-	PullImage(image interfaces.Image) error
-	CreateImageInLocalDocker(image interfaces.Image) error
-	SaveImageToTar(image interfaces.Image) error
+	PullImage(image Image) error
+	CreateImageInLocalDocker(image Image) error
+	SaveImageToTar(image Image) error
 }

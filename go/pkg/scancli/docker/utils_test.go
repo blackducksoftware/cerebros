@@ -23,15 +23,17 @@ package docker
 
 import (
 	"fmt"
-)
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	)
 
 type testImage struct {
-	pullSpec     string
+	image     Image
 	registryAuth *RegistryAuth
 }
 
 func (ti *testImage) DockerPullSpec() string {
-	return ti.pullSpec
+	return ti.image.DockerPullSpec()
 }
 
 func (ti *testImage) DockerTarFilePath() string {
@@ -47,25 +49,25 @@ func RunUtilsTests() {
 		}
 		testCases := []*testImage{
 			{
-				pullSpec: "", registryAuth: nil,
+				image: Image{PullSpec: ""}, registryAuth: nil,
 			},
 			{
-				pullSpec: "abc.def:5000/qqq", registryAuth: &internalDockerRegistries[0],
+				image: Image{PullSpec: "abc.def:5000/qqq"}, registryAuth: &internalDockerRegistries[0],
 			},
 			{
-				pullSpec: "docker-registry.default.svc:5000/ttt", registryAuth: &internalDockerRegistries[1],
+				image: Image{PullSpec: "docker-registry.default.svc:5000/ttt"}, registryAuth: &internalDockerRegistries[1],
 			},
 			{
-				pullSpec: "172.1.1.0:abcd/abc", registryAuth: &internalDockerRegistries[2],
+				image: Image{PullSpec: "172.1.1.0:abcd/abc"}, registryAuth: &internalDockerRegistries[2],
 			},
 			{
-				pullSpec: "172.1.1.0:abc/abc", registryAuth: nil,
+				image: Image{PullSpec: "172.1.1.0:abc/abc"}, registryAuth: nil,
 			},
 		}
 		for _, testCase := range testCases {
 			c := testCase
-			It(fmt.Sprintf("should determine whether %s needs an auth header", c.pullSpec), func() {
-				registryAuth := needsAuthHeader(c, internalDockerRegistries)
+			It(fmt.Sprintf("should determine whether %s needs an auth header", c.DockerPullSpec()), func() {
+				registryAuth := needsAuthHeader(c.image, internalDockerRegistries)
 				Expect(registryAuth).To(Equal(c.registryAuth))
 			})
 		}

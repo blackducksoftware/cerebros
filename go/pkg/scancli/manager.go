@@ -19,11 +19,10 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package hubcli
+package scancli
 
 import (
 	"fmt"
-	"github.com/blackducksoftware/cerebros/go/pkg/perceptor-scanner"
 	"os"
 	"time"
 
@@ -44,7 +43,7 @@ type Manager struct {
 }
 
 // NewManager ...
-func NewManager(config *scancli.Config, stop <-chan struct{}) (*Manager, error) {
+func NewManager(config *Config, stop <-chan struct{}) (*Manager, error) {
 	log.Infof("instantiating Manager with config %+v", config)
 
 	hubPassword, ok := os.LookupEnv(config.Hub.PasswordEnvVar)

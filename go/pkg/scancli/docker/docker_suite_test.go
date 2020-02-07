@@ -23,6 +23,9 @@ package docker
 
 import (
 	"testing"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 func TestDocker(t *testing.T) {

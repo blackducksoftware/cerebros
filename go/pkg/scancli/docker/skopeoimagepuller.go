@@ -35,21 +35,19 @@ import (
 )
 
 const (
-	dockerSocketPath = "/var/run/docker.sock"
-
-	copyStage = "copy docker image"
-	getStage  = "get docker image"
+	skopeoCopyStage = "skopeo copy docker image"
+	skopeoGetStage  = "skopeo get docker image"
 )
 
-// ImagePuller contains the http Docker client and the secured Docker registry credentials
-type ImagePuller struct {
+// SkopeoImagePuller contains the http Docker client and the secured Docker registry credentials
+type SkopeoImagePuller struct {
 	registries []*common.RegistryAuth
 }
 
-// NewImagePuller returns the Image puller type
-func NewImagePuller(registries []*common.RegistryAuth) *ImagePuller {
+// NewSkopeoImagePuller returns the Image puller type
+func NewSkopeoImagePuller(registries []*common.RegistryAuth) *SkopeoImagePuller {
 	log.Infof("creating Skopeo image puller")
-	return &ImagePuller{registries: registries}
+	return &SkopeoImagePuller{registries: registries}
 }
 
 // PullImage gives us access to a docker image by:
@@ -57,7 +55,7 @@ func NewImagePuller(registries []*common.RegistryAuth) *ImagePuller {
 //   2. pulling down the newly created image and saving as a tarball
 // It does this by accessing the host's docker daemon, locally, over the docker
 // socket.  This gives us a window into any images that are local.
-func (ip *ImagePuller) PullImage(image imageInterface.Image) error {
+func (ip *SkopeoImagePuller) PullImage(image imageInterface.Image) error {
 	start := time.Now()
 	log.Infof("Processing image: %s in %s", image.DockerPullSpec(), image.DockerTarFilePath())
 
@@ -78,7 +76,7 @@ func (ip *ImagePuller) PullImage(image imageInterface.Image) error {
 // this example hits the kipp registry:
 //   curl --unix-socket /var/run/docker.sock -X POST http://localhost/images/create\?fromImage\=registry.kipp.blackducksoftware.com%2Fblackducksoftware%2Fhub-jobrunner%3A4.5.0
 //
-func (ip *ImagePuller) CreateImageInLocalDocker(image imageInterface.Image) error {
+func (ip *SkopeoImagePuller) CreateImageInLocalDocker(image imageInterface.Image) error {
 	start := time.Now()
 	dockerPullSpec := image.DockerPullSpec()
 	log.Infof("Attempting to create %s ......", dockerPullSpec)
@@ -111,7 +109,7 @@ func (ip *ImagePuller) CreateImageInLocalDocker(image imageInterface.Image) erro
 	stdoutStderr, err := cmd.CombinedOutput()
 
 	if err != nil {
-		common.RecordDockerError(copyStage, "skopeo copy failed", image, err)
+		common.RecordDockerError(skopeoCopyStage, "skopeo copy failed", image, err)
 		log.Errorf("skopeo copy command failed for %s with error %s and output:\n%s\n", dockerPullSpec, err.Error(), string(stdoutStderr))
 		return errors.Annotatef(err, "Create failed for image %s", dockerPullSpec)
 	}
@@ -125,7 +123,7 @@ func (ip *ImagePuller) CreateImageInLocalDocker(image imageInterface.Image) erro
 
 // SaveImageToTar -- part of what it does is to issue an http request similar to the following:
 //   curl --unix-socket /var/run/docker.sock -X GET http://localhost/images/openshift%2Forigin-docker-registry%3Av3.6.1/get
-func (ip *ImagePuller) SaveImageToTar(image imageInterface.Image) error {
+func (ip *SkopeoImagePuller) SaveImageToTar(image imageInterface.Image) error {
 	start := time.Now()
 	dockerPullSpec := image.DockerPullSpec()
 	log.Infof("Attempting to create %s ......", dockerPullSpec)
@@ -161,7 +159,7 @@ func (ip *ImagePuller) SaveImageToTar(image imageInterface.Image) error {
 	stdoutStderr, err := cmd.CombinedOutput()
 
 	if err != nil {
-		common.RecordDockerError(copyStage, "skopeo copy failed", image, err)
+		common.RecordDockerError(skopeoCopyStage, "skopeo copy failed", image, err)
 		log.Errorf("skopeo copy command failed for %s with error: %s, stdouterr: %s", dockerPullSpec, err.Error(), string(stdoutStderr))
 		return errors.Annotatef(err, "Create failed for image %s", dockerPullSpec)
 	}
@@ -174,7 +172,7 @@ func (ip *ImagePuller) SaveImageToTar(image imageInterface.Image) error {
 }
 
 // needAuthHeader will determine whether the secured registry credentials to be passed to the skopeo client for docker pull
-func (ip *ImagePuller) needAuthHeader(image imageInterface.Image) string {
+func (ip *SkopeoImagePuller) needAuthHeader(image imageInterface.Image) string {
 	var headerValue string
 	dockerPullSpec := image.DockerPullSpec()
 	if registryAuth := common.NeedsAuthHeader(image, ip.registries); registryAuth != nil {
@@ -194,7 +192,7 @@ func (ip *ImagePuller) needAuthHeader(image imageInterface.Image) string {
 }
 
 // recordTarFileSize will record the TAR file size
-func (ip *ImagePuller) recordTarFileSize(image imageInterface.Image) error {
+func (ip *SkopeoImagePuller) recordTarFileSize(image imageInterface.Image) error {
 	// What's the right way to get the size of the file?
 	//  1. resp.ContentLength
 	//  2. check the size of the file after it's written
@@ -202,7 +200,7 @@ func (ip *ImagePuller) recordTarFileSize(image imageInterface.Image) error {
 	stats, err := os.Stat(image.DockerTarFilePath())
 
 	if err != nil {
-		common.RecordDockerError(getStage, "unable to get tar file stats", image, err)
+		common.RecordDockerError(skopeoGetStage, "unable to get tar file stats", image, err)
 		return err
 	}
 

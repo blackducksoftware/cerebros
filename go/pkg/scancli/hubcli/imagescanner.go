@@ -24,24 +24,43 @@ package hubcli
 import (
 	"fmt"
 	"os"
+	"strings"
 
+	"github.com/blackducksoftware/cerebros/go/pkg/scancli/docker"
 	"github.com/blackducksoftware/perceptor-scanner/pkg/common"
 	"github.com/blackducksoftware/perceptor/pkg/api"
 	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
 )
 
-// Scanner ...
-type Scanner struct {
+type HubImageScan struct {
+	Repository string
+	Sha string
+	HubURL string
+	HubProjectName string
+	HubProjectVersionName string
+	HubScanName string
+}
+
+func (his *HubImageScan)pullSpec() string {
+	return fmt.Sprintf("%s@sha256:%s", his.Repository, his.Sha);
+}
+
+func (his *HubImageScan) DockerTarFilePath() string {
+	return fmt.Sprintf("%s/%s.tar", image.Directory, strings.Replace(image.PullSpec, "/", "_", -1))
+}
+
+// ImageScanner ...
+type ImageScanner struct {
 	ifClient       ImageFacadeClientInterface
 	scanClient     ScanClientInterface
 	imageDirectory string
 	stop           <-chan struct{}
 }
 
-// NewScanner ...
-func NewScanner(ifClient ImageFacadeClientInterface, scanClient ScanClientInterface, imageDirectory string, stop <-chan struct{}) *Scanner {
-	return &Scanner{
+// NewImageScanner ...
+func NewImageScanner(ifClient ImageFacadeClientInterface, scanClient ScanClientInterface, imageDirectory string, stop <-chan struct{}) *ImageScanner {
+	return &ImageScanner{
 		ifClient:       ifClient,
 		scanClient:     scanClient,
 		imageDirectory: imageDirectory,
@@ -49,8 +68,8 @@ func NewScanner(ifClient ImageFacadeClientInterface, scanClient ScanClientInterf
 }
 
 // ScanFullDockerImage runs the scan client on a full tar from 'docker export'
-func (scanner *Scanner) ScanFullDockerImage(apiImage *api.ImageSpec) error {
-	pullSpec := fmt.Sprintf("%s@sha256:%s", apiImage.Repository, apiImage.Sha)
+func (scanner *ImageScanner) ScanFullDockerImage(image *HubImageScan) error {
+	pullSpec := image.pullSpec()
 	image := common.NewImage(scanner.imageDirectory, pullSpec)
 	err := scanner.ifClient.PullImage(image)
 	if err != nil {
@@ -61,7 +80,7 @@ func (scanner *Scanner) ScanFullDockerImage(apiImage *api.ImageSpec) error {
 }
 
 // ScanFile runs the scan client against a single file
-func (scanner *Scanner) ScanFile(host string, path string, hubProjectName string, hubVersionName string, hubScanName string) error {
+func (scanner *ImageScanner) ScanFile(host string, path string, hubProjectName string, hubVersionName string, hubScanName string) error {
 	return scanner.scanClient.Scan(host, path, hubProjectName, hubVersionName, hubScanName)
 }
 

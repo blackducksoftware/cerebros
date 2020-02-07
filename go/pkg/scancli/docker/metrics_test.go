@@ -25,6 +25,7 @@ import (
 	"time"
 
 	//	. "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
 )
 
 func RunMetricsTests() {
