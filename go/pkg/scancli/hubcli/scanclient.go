@@ -47,7 +47,7 @@ type ScanClient struct {
 	username       string
 	password       string
 	port           int
-	os OSType
+	os             OSType
 	scanClientInfo *ScanClientInfo
 }
 
@@ -57,7 +57,7 @@ func NewScanClient(username string, password string, port int, os OSType) (*Scan
 		username:       username,
 		password:       password,
 		port:           port,
-		os: os,
+		os:             os,
 		scanClientInfo: nil}
 	return &sc, nil
 }

@@ -49,7 +49,7 @@ func NewModel() *Model {
 	model := &Model{
 		ScanQueue:   util.NewPriorityQueue(),
 		Transitions: []*Transition{},
-		actions:          make(chan *action, actionChannelSize),
+		actions:     make(chan *action, actionChannelSize),
 	}
 	go func() {
 		stop := time.Now()

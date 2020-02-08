@@ -29,19 +29,18 @@ import (
 	"os"
 )
 
-
 type singleImageScanConfig struct {
-	HubURL string
+	HubURL      string
 	HubUsername string
 	HubPassword string
-	HubPort int
+	HubPort     int
 
-	HubProjectName string
+	HubProjectName        string
 	HubProjectVersionName string
-	HubScanName string
+	HubScanName           string
 
 	ImageRepository string
-	ImageSha string
+	ImageSha        string
 
 	ImageDirectory string
 
