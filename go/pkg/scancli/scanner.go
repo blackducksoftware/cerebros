@@ -56,7 +56,8 @@ func NewScanner(config *Config, stop <-chan struct{}) (*Scanner, error) {
 	scanClient, err := hubcli.NewScanClient(
 		config.Hub.User,
 		hubPassword,
-		config.Hub.Port)
+		config.Hub.Port,
+		hubcli.OSTypeLinux)
 	if err != nil {
 		return nil, errors.Annotatef(err, "unable to instantiate hub scan client")
 	}
