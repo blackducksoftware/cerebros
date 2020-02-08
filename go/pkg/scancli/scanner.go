@@ -28,7 +28,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/blackducksoftware/perceptor/pkg/api"
 	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -39,8 +38,8 @@ const (
 
 // Scanner ...
 type Scanner struct {
-	imageScanner         *hubcli.ImageScanner
-	perceptorClient *PerceptorClient
+	imageScanner    *hubcli.ImageScanner
+	scanQueueClient *ScanQueueClient
 	stop            <-chan struct{}
 }
 
@@ -63,8 +62,8 @@ func NewScanner(config *Config, stop <-chan struct{}) (*Scanner, error) {
 	}
 
 	return &Scanner{
-		imageScanner:         hubcli.NewImageScanner(imagePuller, scanClient, config.Scanner.GetImageDirectory(), stop),
-		perceptorClient: NewPerceptorClient(config.ScanQueue.Host, config.ScanQueue.Port),
+		imageScanner:    hubcli.NewImageScanner(imagePuller, scanClient, config.Scanner.GetImageDirectory(), stop),
+		scanQueueClient: NewScanQueueClient(config.ScanQueue.Host, config.ScanQueue.Port),
 		stop:            stop}, nil
 }
 
@@ -85,7 +84,7 @@ func (sm *Scanner) StartRequestingScanJobs() {
 
 func (sm *Scanner) requestAndRunScanJob() {
 	log.Debug("requesting scan job")
-	nextImage, err := sm.perceptorClient.GetNextImage()
+	nextImage, err := sm.scanQueueClient.GetNextImage()
 	if err != nil {
 		log.Errorf("unable to request scan job: %s", err.Error())
 		return
@@ -97,16 +96,25 @@ func (sm *Scanner) requestAndRunScanJob() {
 
 	log.Infof("processing scan job %+v", nextImage)
 
-	err = sm.imageScanner.ScanFullDockerImage(nextImage.ImageSpec)
+	spec := nextImage.ImageSpec
+	image := &hubcli.HubImageScanRequest{
+		Repository:            spec.Repository,
+		Sha:                   spec.Sha,
+		HubURL:                spec.HubURL,
+		HubProjectName:        spec.HubProjectName,
+		HubProjectVersionName: spec.HubProjectVersionName,
+		HubScanName:           spec.HubScanName,
+	}
+	err = sm.imageScanner.ScanFullDockerImage(image)
 	errorString := ""
 	if err != nil {
 		log.Errorf("scan error: %s", err.Error())
 		errorString = err.Error()
 	}
 
-	finishedJob := api.FinishedScanClientJob{Err: errorString, ImageSpec: *nextImage.ImageSpec}
+	finishedJob := FinishedScanClientJob{Err: errorString, ImageSpec: *nextImage.ImageSpec}
 	log.Infof("about to finish job, going to send over %+v", finishedJob)
-	sm.perceptorClient.PostFinishedScan(&finishedJob)
+	sm.scanQueueClient.PostFinishedScan(&finishedJob)
 	if err != nil {
 		log.Errorf("unable to finish scan job: %s", err.Error())
 	}

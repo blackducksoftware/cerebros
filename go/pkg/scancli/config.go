@@ -86,8 +86,8 @@ func GetConfig(configPath string) (*Config, error) {
 	viper.SetConfigFile(configPath)
 	err := viper.ReadInConfig()
 	if err != nil {
-			return nil, errors.Annotatef(err, "failed to ReadInConfig")
-		}
+		return nil, errors.Annotatef(err, "failed to ReadInConfig")
+	}
 
 	err = viper.Unmarshal(&config)
 	if err != nil {

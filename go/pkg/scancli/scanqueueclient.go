@@ -37,26 +37,26 @@ const (
 
 // TODO move this into the scan queue package
 
-// PerceptorClientInterface ...
-type PerceptorClientInterface interface {
+// ScanQueueClientInterface ...
+type ScanQueueClientInterface interface {
 	GetNextImage() (*NextImage, error)
 	PostFinishedScan(scan *FinishedScanClientJob) error
 }
 
-// PerceptorClient ...
-type PerceptorClient struct {
+// ScanQueueClient ...
+type ScanQueueClient struct {
 	Resty *resty.Client
 	Host  string
 	Port  int
 }
 
-// NewPerceptorClient ...
-func NewPerceptorClient(host string, port int) *PerceptorClient {
+// NewScanQueueClient ...
+func NewScanQueueClient(host string, port int) *ScanQueueClient {
 	restyClient := resty.New()
 	restyClient.SetRetryCount(3)
 	restyClient.SetRetryWaitTime(500 * time.Millisecond)
 	restyClient.SetTimeout(time.Duration(5 * time.Second))
-	return &PerceptorClient{
+	return &ScanQueueClient{
 		Resty: restyClient,
 		Host:  host,
 		Port:  port,
@@ -64,7 +64,7 @@ func NewPerceptorClient(host string, port int) *PerceptorClient {
 }
 
 // GetNextImage ...
-func (pc *PerceptorClient) GetNextImage() (*NextImage, error) {
+func (pc *ScanQueueClient) GetNextImage() (*NextImage, error) {
 	url := fmt.Sprintf("http://%s:%d/%s", pc.Host, pc.Port, nextImagePath)
 	nextImage := NextImage{}
 	log.Debugf("about to issue post request to url %s", url)
@@ -85,7 +85,7 @@ func (pc *PerceptorClient) GetNextImage() (*NextImage, error) {
 }
 
 // PostFinishedScan ...
-func (pc *PerceptorClient) PostFinishedScan(scan *FinishedScanClientJob) error {
+func (pc *ScanQueueClient) PostFinishedScan(scan *FinishedScanClientJob) error {
 	url := fmt.Sprintf("http://%s:%d/%s", pc.Host, pc.Port, finishedScanPath)
 	log.Debugf("about to issue post request %+v to url %s", scan, url)
 	resp, err := pc.Resty.R().SetBody(scan).Post(url)

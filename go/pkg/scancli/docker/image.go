@@ -27,12 +27,6 @@ import (
 	"strings"
 )
 
-// ImageInterface -- is this really necessary?
-type ImageInterface interface {
-	DockerPullSpec() string
-	DockerTarFilePath() string
-}
-
 // Image ...
 type Image struct {
 	Directory string
