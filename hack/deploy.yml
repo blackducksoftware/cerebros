@@ -1,0 +1,155 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rabbitmq
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: rabbitmq
+  name: rabbitmq-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: rabbitmq
+  template:
+    metadata:
+      labels:
+        component: rabbitmq
+    spec:
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: rabbitmq
+      containers:
+#      - image: rabbitmq
+      - image: rabbitmq:3-management
+        name: rabbitmq
+        volumeMounts:
+        - mountPath: /var/lib/rabbitmq
+          name: data
+        ports:
+        - containerPort: 5672
+        - containerPort: 15672
+        resources:
+          limits:
+            cpu: 1000m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: rabbitmq
+  name: rabbitmq
+spec:
+  ports:
+    - port: 5672
+  selector:
+    component: rabbitmq
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: cerebros-worker
+  name: cerebros-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: cerebros-worker
+  template:
+    metadata:
+      labels:
+        component: cerebros-worker
+    spec:
+      hostname: "cerebros"
+      volumes:
+      - name: gcp-service-account
+        secret:
+          defaultMode: 420
+          secretName: gcp-service-account
+      hostAliases:
+        # Set this in external or internal ingress IP
+        - ip: "35.232.28.6"
+          hostnames:
+            - "onprem-dev.dev.polaris.synopsys.com"
+      containers:
+        - image: jdartigalongue/dir-gen:latest
+          imagePullPolicy: Always
+          env:
+          - name: AMQP_URL
+            value: "amqp://guest:guest@rabbitmq:5672/"
+          - name: POLARIS_URL
+            value: "https://onprem-dev.dev.polaris.synopsys.com"
+          - name: POLARIS_TOKEN
+            value: "h5ubjqckhh5dl2uuaborprq06o58l57g0lf601vv09vbh7jll4s0"
+          - name: GCP_SERVICE_ACCOUNT_PATH
+            value: "/tmp/secrets/gcp"
+          - name: CA_PATH
+            value: "/tmp/secrets/ca"
+          name: cerebros-worker
+          volumeMounts:
+            - mountPath: /tmp/secrets
+              name: gcp-service-account
+          resources:
+            limits:
+              cpu: 1000m
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: idir-scanner
+  name: idir-scanner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: idir-scanner
+  template:
+    metadata:
+      labels:
+        component: idir-scanner
+    spec:
+      hostname: "cerebros"
+      volumes:
+        - name: gcp-service-account
+          secret:
+            defaultMode: 420
+            secretName: gcp-service-account
+      hostAliases:
+        # Set this in external or internal ingress IP
+        - ip: "35.232.28.6"
+          hostnames:
+            - "onprem-dev.dev.polaris.synopsys.com"
+      containers:
+        - image: jdartigalongue/idir-scanner:latest
+          imagePullPolicy: Always
+          env:
+            - name: AMQP_URL
+              value: "amqp://guest:guest@rabbitmq:5672/"
+            - name: POLARIS_URL
+              value: "https://onprem-dev.dev.polaris.synopsys.com"
+            - name: POLARIS_TOKEN
+              value: "h5ubjqckhh5dl2uuaborprq06o58l57g0lf601vv09vbh7jll4s0"
+            - name: GCP_SERVICE_ACCOUNT_PATH
+              value: "/tmp/secrets/gcp"
+            - name: CA_PATH
+              value: "/tmp/secrets/ca"
+          name: cerebros-worker
+          volumeMounts:
+            - mountPath: /tmp/secrets
+              name: gcp-service-account
+          resources:
+            limits:
+              cpu: 1000m
