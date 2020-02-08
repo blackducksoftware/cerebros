@@ -9,17 +9,14 @@ import (
 	"path"
 )
 
-
-
-
 type PolarisConfig struct {
-	PolarisURL      string
-	PolarisToken  string
+	PolarisURL   string
+	PolarisToken string
 }
 
 type PolarisScanner struct {
 	config PolarisConfig
-	wd string
+	wd     string
 }
 
 func NewPolarisScanner(config PolarisConfig) (*PolarisScanner, error) {
@@ -35,9 +32,9 @@ func NewPolarisScanner(config PolarisConfig) (*PolarisScanner, error) {
 	return &PolarisScanner{config: config, wd: wd}, nil
 }
 
-func (p *PolarisScanner) Capture(capturePath string) (string, error){
+func (p *PolarisScanner) Capture(capturePath string) (string, error) {
 	fmt.Printf("Running Polaris Capture\n")
-	if output, err := execSh("polaris capture",  capturePath); err != nil {
+	if output, err := execSh("polaris capture", capturePath); err != nil {
 		return "", fmt.Errorf("%s - %s", output, err)
 	}
 
@@ -46,18 +43,17 @@ func (p *PolarisScanner) Capture(capturePath string) (string, error){
 		return "", err
 	}
 
-	return path.Join(capturePath, ".synopsys/polaris/data/coverity/2019.06-5/idir"),  nil
+	return path.Join(capturePath, ".synopsys/polaris/data/coverity/2019.06-5/idir"), nil
 }
 
-
-func (p *PolarisScanner) Scan(repoPath, idirPath string) ( error){
+func (p *PolarisScanner) Scan(repoPath, idirPath string) error {
 	if output, err := execSh("polaris setup", repoPath); err != nil {
 		return fmt.Errorf("%s - %s", output, err)
 	}
 
 	polarisYmlPath := path.Join(repoPath, "polaris.yml")
 	content, err := ioutil.ReadFile(polarisYmlPath)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 
@@ -74,7 +70,7 @@ func (p *PolarisScanner) Scan(repoPath, idirPath string) ( error){
 		},
 	}
 	CoverityConfigYaml, err := yaml.Marshal(CoverityConfig)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	if err := ioutil.WriteFile(polarisYmlPath, CoverityConfigYaml, os.FileMode(700)); err != nil {
@@ -90,7 +86,7 @@ func (p *PolarisScanner) Scan(repoPath, idirPath string) ( error){
 
 func execSh(shellCmd, workdir string) (string, error) {
 	execCmd := exec.Command("sh", "-c", shellCmd)
-	if len(workdir) > 0{
+	if len(workdir) > 0 {
 		execCmd.Dir = path.Clean(workdir)
 	}
 
@@ -101,8 +97,7 @@ func execSh(shellCmd, workdir string) (string, error) {
 	return string(output), err
 }
 
-
-func configurePolarisCliWithAccessToken(envURL, token ,wd string) error {
+func configurePolarisCliWithAccessToken(envURL, token, wd string) error {
 	os.Setenv("POLARIS_SERVER_URL", envURL)
 	os.Setenv("POLARIS_ACCESS_TOKEN", token)
 
@@ -156,8 +151,6 @@ func configurePolarisCliWithAccessToken(envURL, token ,wd string) error {
 //	fmt.Printf("Scan Complete\n")
 //	return nil
 //}
-
-
 
 //func downloadPolarisCli(envURL string, authHeader map[string]string) (string, error) {
 //	// TODO change this to linux
@@ -234,7 +227,6 @@ func configurePolarisCliWithAccessToken(envURL, token ,wd string) error {
 //
 //	return polarisCliPath, nil
 //}
-
 
 /*func authenticateUserAndGetCookie(envURL, emailID, password string) (string, error) {
 	apiURL := fmt.Sprintf("%s/api/auth/authenticate", envURL)

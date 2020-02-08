@@ -67,6 +67,3 @@ func CopyFromGSBucket(bucketName, serviceAccountPath, bucketFilePath, localFileP
 
 	return nil
 }
-
-
-
