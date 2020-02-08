@@ -97,7 +97,7 @@ func ScanImage(configPath string) error {
 func runScan(hisr *hubcli.HubImageScanRequest, hubUsername string, hubPassword string, hubPort int, imageDirectory string) error {
 	imagePuller := docker.NewImagePuller([]docker.RegistryAuth{})
 	stop := make(chan struct{})
-	scanClient, err := hubcli.NewScanClient(hubUsername, hubPassword, hubPort)
+	scanClient, err := hubcli.NewScanClient(hubUsername, hubPassword, hubPort, hubcli.OSTypeMac)
 	if err != nil {
 		return err
 	}

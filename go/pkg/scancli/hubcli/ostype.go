@@ -23,7 +23,7 @@ package hubcli
 
 import "fmt"
 
-// OSType describes the state of an image in perceptor
+// OSType ...
 type OSType int
 
 // .....

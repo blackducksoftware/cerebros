@@ -47,15 +47,17 @@ type ScanClient struct {
 	username       string
 	password       string
 	port           int
+	os OSType
 	scanClientInfo *ScanClientInfo
 }
 
 // NewScanClient requires hub login credentials
-func NewScanClient(username string, password string, port int) (*ScanClient, error) {
+func NewScanClient(username string, password string, port int, os OSType) (*ScanClient, error) {
 	sc := ScanClient{
 		username:       username,
 		password:       password,
 		port:           port,
+		os: os,
 		scanClientInfo: nil}
 	return &sc, nil
 }
@@ -66,7 +68,7 @@ func (sc *ScanClient) ensureScanClientIsDownloaded(host string) error {
 	}
 	cliRootPath := "/tmp/scanner"
 	scanClientInfo, err := DownloadScanClient(
-		OSTypeLinux,
+		sc.os,
 		cliRootPath,
 		host,
 		sc.username,
