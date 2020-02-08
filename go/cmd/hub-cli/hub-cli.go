@@ -18,42 +18,24 @@ KIND, either express or implied. See the License for the
 specific language governing permissions and limitations
 under the License.
 */
-
-package util
+package main
 
 import (
-	"fmt"
-	"io"
-	"net/http"
 	"os"
+
+	"github.com/blackducksoftware/cerebros/go/pkg/scancli"
+	log "github.com/sirupsen/logrus"
 )
 
-func DownloadFile(filepath string, url string) (err error) {
-
-	// Create the file
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
+func main() {
+	var configPath string
+	log.Info("starting scancli")
+	if len(os.Args) > 1 {
+		configPath = os.Args[1]
 	}
-	defer out.Close()
+	log.Infof("Config path: %s", configPath)
 
-	// Get the data
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// Check server response
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", resp.Status)
-	}
-
-	// Writer the body to file
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	// Run the scanner
+	stop := make(chan struct{})
+	scancli.RunScanner(configPath, stop)
 }

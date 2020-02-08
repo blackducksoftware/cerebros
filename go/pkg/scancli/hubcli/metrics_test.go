@@ -19,41 +19,23 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package util
+package hubcli
 
 import (
-	"fmt"
-	"io"
-	"net/http"
-	"os"
+	"testing"
+	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
-func DownloadFile(filepath string, url string) (err error) {
+func TestMetrics(t *testing.T) {
+	recordScannerError("blar")
+	recordCleanUpFile(false)
+	recordScanClientDuration(time.Now().Sub(time.Now()), true)
+	recordTotalScannerDuration(time.Now().Sub(time.Now()), false)
+	recordHTTPStats("getnextimage", 200)
 
-	// Create the file
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	// Get the data
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// Check server response
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", resp.Status)
-	}
-
-	// Writer the body to file
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	message := "finished test case"
+	t.Log(message)
+	log.Info(message)
 }

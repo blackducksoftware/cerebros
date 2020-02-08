@@ -19,41 +19,24 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package util
+package docker
 
 import (
-	"fmt"
-	"io"
-	"net/http"
-	"os"
+	"time"
+
+	//	. "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
 )
 
-func DownloadFile(filepath string, url string) (err error) {
-
-	// Create the file
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	// Get the data
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// Check server response
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", resp.Status)
-	}
-
-	// Writer the body to file
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return nil
+func RunMetricsTests() {
+	Describe("Model", func() {
+		It("should handle metrics calls with arbitrary data", func() {
+			recordEvent("ab cd 123")
+			recordDockerGetDuration(time.Now().Sub(time.Now()))
+			recordDockerCreateDuration(time.Now().Sub(time.Now()))
+			recordDockerTotalDuration(time.Now().Sub(time.Now()))
+			//  recordDockerError("abc", "def", image, err)
+			recordTarFileSize(24)
+		})
+	})
 }

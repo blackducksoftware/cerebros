@@ -19,41 +19,25 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package util
+package docker
 
 import (
+	b64 "encoding/base64"
 	"fmt"
-	"io"
-	"net/http"
-	"os"
 )
 
-func DownloadFile(filepath string, url string) (err error) {
+func base64Encode(data string) string {
+	return b64.StdEncoding.EncodeToString([]byte(data))
+}
 
-	// Create the file
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	// Get the data
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// Check server response
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", resp.Status)
-	}
-
-	// Writer the body to file
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return nil
+func encodeAuthHeader(username string, password string) string {
+	data := fmt.Sprintf("{ \"username\": \"%s\", \"password\": \"%s\" }", username, password)
+	// fmt.Printf("debug:<\n%s\n>done debug %d\n\n", data, len(data))
+	// bytesIn := []byte(data)
+	// fmt.Printf("bytes in:<\n%#v\n>done bytes in %d\n\n", bytesIn, len(bytesIn))
+	encoded := base64Encode(data)
+	// fmt.Printf("encoded:<\n%s\n>done encoded %d\n\n", encoded, len(encoded))
+	// bytesOut := []byte(encoded)
+	// fmt.Printf("bytes out:<\n%#v\n>done bytes out %d\n\n", bytesOut, len(bytesOut))
+	return encoded
 }

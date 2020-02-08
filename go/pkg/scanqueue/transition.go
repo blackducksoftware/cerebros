@@ -19,41 +19,24 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package util
+package model
 
-import (
-	"fmt"
-	"io"
-	"net/http"
-	"os"
-)
+import "time"
 
-func DownloadFile(filepath string, url string) (err error) {
+// Transition .....
+type Transition struct {
+	From string
+	To   ScanStatus
+	Err  error
+	Time time.Time
+}
 
-	// Create the file
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
+// NewTransition .....
+func NewTransition(from string, to ScanStatus, err error) *Transition {
+	return &Transition{
+		From: from,
+		To:   to,
+		Err:  err,
+		Time: time.Now(),
 	}
-	defer out.Close()
-
-	// Get the data
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// Check server response
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", resp.Status)
-	}
-
-	// Writer the body to file
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

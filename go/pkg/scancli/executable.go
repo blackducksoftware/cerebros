@@ -19,41 +19,46 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package util
+package scancli
 
 import (
 	"fmt"
-	"io"
 	"net/http"
-	"os"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
 )
 
-func DownloadFile(filepath string, url string) (err error) {
-
-	// Create the file
-	out, err := os.Create(filepath)
+// RunScanner ...
+func RunScanner(configPath string, stop <-chan struct{}) {
+	config, err := GetConfig(configPath)
 	if err != nil {
-		return err
+		panic(fmt.Errorf("Failed to load configuration: %v", err))
 	}
-	defer out.Close()
 
-	// Get the data
-	resp, err := http.Get(url)
+	level, err := config.GetLogLevel()
 	if err != nil {
-		return err
+		panic(err)
 	}
-	defer resp.Body.Close()
+	log.SetLevel(level)
 
-	// Check server response
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", resp.Status)
-	}
+	prometheus.Unregister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
+	prometheus.Unregister(prometheus.NewGoCollector())
 
-	// Writer the body to file
-	_, err = io.Copy(out, resp.Body)
+	scanner, err := NewScanner(config, stop)
 	if err != nil {
-		return err
+		panic(err)
 	}
+	scanner.StartRequestingScanJobs()
 
-	return nil
+	http.Handle("/metrics", promhttp.Handler())
+
+	addr := fmt.Sprintf(":%d", config.Scanner.Port)
+	log.Infof("successfully instantiated scanner %+v, serving on %s", scanner, addr)
+	go func() {
+		http.ListenAndServe(addr, nil)
+	}()
+
+	<-stop
 }

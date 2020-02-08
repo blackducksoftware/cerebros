@@ -19,41 +19,19 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package util
+package model
 
-import (
-	"fmt"
-	"io"
-	"net/http"
-	"os"
-)
-
-func DownloadFile(filepath string, url string) (err error) {
-
-	// Create the file
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	// Get the data
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// Check server response
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", resp.Status)
-	}
-
-	// Writer the body to file
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return nil
+// Metrics .....
+type Metrics struct {
+	ScanStatusCounts      map[ScanStatus]int
+	NumberOfPods          int
+	NumberOfImages        int
+	ContainerCounts       map[int]int
+	ImageCountHistogram   map[int]int
+	PodStatus             map[string]int
+	ImageStatus           map[string]int
+	PodPolicyViolations   map[int]int
+	ImagePolicyViolations map[int]int
+	PodVulnerabilities    map[int]int
+	ImageVulnerabilities  map[int]int
 }

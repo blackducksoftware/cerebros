@@ -19,41 +19,41 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package util
+package hubcli
 
-import (
-	"fmt"
-	"io"
-	"net/http"
-	"os"
+import "fmt"
+
+// OSType ...
+type OSType int
+
+// .....
+const (
+	OSTypeLinux OSType = iota
+	OSTypeMac   OSType = iota
+
+//	OSTypeWindows OSType = iota
 )
 
-func DownloadFile(filepath string, url string) (err error) {
-
-	// Create the file
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
+// String .....
+func (t OSType) String() string {
+	switch t {
+	case OSTypeLinux:
+		return "OSTypeLinux"
+	case OSTypeMac:
+		return "OSTypeMac"
+		// case OSTypeWindows:
+		// 	return "OSTypeWindows"
 	}
-	defer out.Close()
-
-	// Get the data
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// Check server response
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", resp.Status)
-	}
-
-	// Writer the body to file
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	panic(fmt.Errorf("invalid OSType value: %d", t))
 }
+
+// // MarshalJSON .....
+// func (t OSType) MarshalJSON() ([]byte, error) {
+// 	jsonString := fmt.Sprintf(`"%s"`, t.String())
+// 	return []byte(jsonString), nil
+// }
+//
+// // MarshalText .....
+// func (t OSType) MarshalText() (text []byte, err error) {
+// 	return []byte(t.String()), nil
+// }
