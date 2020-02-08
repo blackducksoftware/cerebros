@@ -34,8 +34,6 @@ type HubConfig struct {
 	User           string
 	PasswordEnvVar string
 	Port           int
-
-	CreateImagesOnly bool
 }
 
 // ScanQueueConfig ...
