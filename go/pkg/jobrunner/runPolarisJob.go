@@ -21,11 +21,12 @@ import (
 	"cloud.google.com/go/storage"
 )
 
+
 type Job struct {
-	FromBucket     string `json:"fromBucket"`
+	FromBucket string `json:"fromBucket"`
 	FromBucketPath string `json:"fromBucketPath"`
 
-	ToBucket     string `json:"toBucket"`
+	ToBucket string `json:"toBucket"`
 	ToBucketPath string `json:"toBucketPath"`
 }
 
@@ -302,6 +303,7 @@ func copyToGSBucket(bucketName, serviceAccountPath, bucketFilePath, localFilePat
 		return err
 	}
 
+
 	return nil
 }
 
@@ -371,7 +373,7 @@ func downloadAndSetupPolarisCli(envURL, emailID, password string) (string, error
 	return polarisCliPath, nil
 }
 
-func captureBuildAndPushToBucket(fromBucket, fromBucketPath, polarisCliPath, bucketName, pathToBucketServiceAccount, storagePathInBucket string) error {
+func captureBuildAndPushToBucket(fromBucket, fromBucketPath,  polarisCliPath, bucketName, pathToBucketServiceAccount, storagePathInBucket string) error {
 	// Create a temporary directpry
 	// TODO change this. Use emptyDir
 	tmpDir, err := ioutil.TempDir("/Users/jeremyd/hhh", "scan")
@@ -381,17 +383,19 @@ func captureBuildAndPushToBucket(fromBucket, fromBucketPath, polarisCliPath, buc
 	defer os.RemoveAll(tmpDir)
 
 	fmt.Printf("Downloading from GS Bucket\n")
-
+	
 	// Download the zip archive
-	tmpFile := path.Join(tmpDir, "master.zip")
-	if err := copyFromGSBucket(fromBucket, pathToBucketServiceAccount, fromBucketPath, tmpFile); err != nil {
+	tmpFile := path.Join(tmpDir,"master.zip")
+	if err := copyFromGSBucket(fromBucket, pathToBucketServiceAccount, fromBucketPath,tmpFile ); err != nil {
 		return err
 	}
 
+	
 	// Unzip then remove
 	if err := util.Unzip(tmpFile, tmpDir); err != nil {
 		return err
 	}
+
 
 	fmt.Printf("Running Polaris Capture\n")
 	if err := polarisCliCapture(tmpDir, polarisCliPath); err != nil {
@@ -421,7 +425,7 @@ func Start(job Job, polarisConfig PolarisConfig, pathToBucketServiceAccount stri
 		return err
 	}
 
-	err = captureBuildAndPushToBucket(job.FromBucket, job.FromBucketPath, polarisCliPath, job.ToBucket, pathToBucketServiceAccount, job.ToBucketPath)
+	err = captureBuildAndPushToBucket(job.FromBucket,job.FromBucketPath, polarisCliPath, job.ToBucket, pathToBucketServiceAccount, job.ToBucketPath)
 	if err != nil {
 		return err
 	}
