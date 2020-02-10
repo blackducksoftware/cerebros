@@ -68,6 +68,7 @@ func (pq *PriorityQueue) Dump() []map[string]interface{} {
 		elems[i] = map[string]interface{}{
 			"Key":      pq.items[i].key,
 			"Priority": pq.items[i].priority,
+			"Value": pq.items[i].value,
 		}
 	}
 	return elems

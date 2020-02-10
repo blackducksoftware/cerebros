@@ -31,9 +31,10 @@ import (
 )
 
 const (
-	addJobPath      = "addjob"
+	addJobPath      = "job"
 	nextJobPath     = "nextjob"
 	finishedJobPath = "finishedjob"
+	modelPath       = "model"
 )
 
 // ApiClientInterface ...
@@ -114,6 +115,27 @@ func (ac *ApiClient) GetNextJob(res interface{}) error {
 		return fmt.Errorf("unable to get next job; body %s and status code %d", string(resp.Body()), resp.StatusCode())
 	}
 	return nil
+}
+
+// GetModel ...
+func (ac *ApiClient) GetModel() (string, error) {
+	url := ac.url(modelPath)
+	log.Debugf("about to issue post request to url %s", url)
+	//var modelString string
+	resp, err := ac.Resty.R().
+		SetHeader("Content-Type", "application/json").
+		//SetResult(&modelString).
+		Get(url)
+	log.Debugf("received resp %+v and error %+v from url %s", resp, err, url)
+	//recordHTTPStats(nextImagePath, resp.StatusCode())
+	if err != nil {
+		//recordScannerError("unable to get next job")
+		return "", errors.Wrapf(err, "unable to get next job")
+	} else if (resp.StatusCode() < 200) || (resp.StatusCode() >= 300) {
+		//recordScannerError("unable to get next job -- bad status code")
+		return "", fmt.Errorf("unable to get next job; body %s and status code %d", string(resp.Body()), resp.StatusCode())
+	}
+	return string(resp.String()), nil
 }
 
 // PostFinishedJob ...

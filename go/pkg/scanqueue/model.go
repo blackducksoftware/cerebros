@@ -104,6 +104,7 @@ func (model *Model) finishJob(key string, err string) error {
 // HTTP responder implementation -- Public API
 
 func (model *Model) AddJob(job ApiJob) error {
+
 	key := job.Key
 	data := job.Data
 	done := make(chan error)
@@ -119,22 +120,18 @@ func (model *Model) AddJob(job ApiJob) error {
 }
 
 // GetNextJob returns nil if no job was found
-func (model *Model) GetNextJob() (ApiJob, error) {
+func (model *Model) GetNextJob() (interface{}, error) {
 	done := make(chan struct{})
-	var apiJob ApiJob
+	var job interface{}
 	var err error
 	model.actions <- &action{"getNextJob", func() error {
 		log.Debugf("looking for next job")
-		key, job := model.getNextJob()
-		apiJob = ApiJob{
-			Key:  key,
-			Data: job,
-		}
+		_, job = model.getNextJob()
 		close(done)
 		return nil
 	}}
 	<-done
-	return apiJob, err
+	return job, err
 }
 
 // PostFinishJob ...
@@ -157,7 +154,9 @@ func (model *Model) GetModel() ([]byte, error) {
 	var modelJson []byte
 	var err error
 	model.actions <- &action{"getModel", func() error {
-		modelJson, err = json.MarshalIndent(model, "", "  ")
+		log.Debugf("model: %+v", model)
+		modelJson, err = json.MarshalIndent(model.ScanQueue.Dump(), "", "  ")
+		log.Debugf("model json: %s", string(modelJson))
 		close(done)
 		return err
 	}}

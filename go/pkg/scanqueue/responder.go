@@ -30,7 +30,7 @@ type Responder interface {
 	GetModel() ([]byte, error)
 
 	AddJob(job ApiJob) error
-	GetNextJob() (ApiJob, error)
+	GetNextJob() (interface{}, error)
 	PostFinishJob(result ApiJobResult) error
 
 	NotFound(w http.ResponseWriter, r *http.Request)
