@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2020 Synopsys, Inc.
+Copyright (C) 2018 Synopsys, Inc.
 
 Licensed to the Apache Software Foundation (ASF) under one
 or more contributor license agreements. See the NOTICE file
@@ -18,26 +18,41 @@ KIND, either express or implied. See the License for the
 specific language governing permissions and limitations
 under the License.
 */
-package main
+
+package scanqueue
 
 import (
-	"github.com/blackducksoftware/cerebros/go/pkg/scanqueue"
-
-	//"fmt"
-	"os"
-
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
-func main() {
-	var configPath string
-	log.Info("starting scancli")
-	if len(os.Args) > 1 {
-		configPath = os.Args[1]
-	}
-	log.Infof("Config path: %s", configPath)
+// Config ...
+type Config struct {
+	Port int
 
-	// Run the scanner
-	stop := make(chan struct{})
-	scanqueue.RunScanQueue(configPath, stop)
+	LogLevel string
+}
+
+// GetLogLevel ...
+func (config *Config) GetLogLevel() (log.Level, error) {
+	return log.ParseLevel(config.LogLevel)
+}
+
+// GetConfig ...
+func GetConfig(configPath string) (*Config, error) {
+	var config *Config
+
+	viper.SetConfigFile(configPath)
+	err := viper.ReadInConfig()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to ReadInConfig")
+	}
+
+	err = viper.Unmarshal(&config)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal config")
+	}
+
+	return config, nil
 }
