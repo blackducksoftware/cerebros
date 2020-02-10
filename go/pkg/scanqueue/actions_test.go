@@ -21,6 +21,8 @@ under the License.
 
 package model
 
+/*
+
 import (
 	"encoding/json"
 	"fmt"
@@ -305,3 +307,5 @@ func RunActionTests() {
 		})
 	})
 }
+
+*/

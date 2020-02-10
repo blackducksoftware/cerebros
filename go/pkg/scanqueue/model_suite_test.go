@@ -30,8 +30,8 @@ import (
 
 func TestModel(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunActionTests()
-	RunModelTests()
-	RunTestLegalScanStatusTransitions()
+	//RunActionTests()
+	//RunModelTests()
+	//RunTestLegalScanStatusTransitions()
 	RunSpecs(t, "model suite")
 }

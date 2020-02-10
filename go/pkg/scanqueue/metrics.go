@@ -21,6 +21,9 @@ under the License.
 
 package model
 
+/*
+TODO
+
 import (
 	"fmt"
 	"time"
@@ -149,3 +152,5 @@ func init() {
 	}, []string{"message"})
 	prometheus.MustRegister(reducerMessageCounter)
 }
+
+*/
