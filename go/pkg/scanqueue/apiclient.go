@@ -44,14 +44,14 @@ type ApiClientInterface interface {
 
 // ApiJob ...
 type ApiJob struct {
-	key  string
-	data interface{}
+	Key  string
+	Data interface{}
 }
 
 // ApiJobResult ...
 type ApiJobResult struct {
-	key    string
-	result string
+	Key string
+	Err string
 }
 
 // ApiClient ...
@@ -82,7 +82,7 @@ func (ac *ApiClient) url(path string) string {
 func (ac *ApiClient) AddJob(key string, data interface{}) error {
 	url := ac.url(addJobPath)
 	log.Debugf("about to issue post request to url %s", url)
-	job := &ApiJob{key: key, data: data}
+	job := &ApiJob{Key: key, Data: data}
 	resp, err := ac.Resty.R().SetBody(job).Post(url)
 	log.Debugf("received resp %+v, status code %d, error %+v from url %s", resp, resp.StatusCode(), err, url)
 	//recordHTTPStats(addJobPath, resp.StatusCode())
@@ -100,10 +100,9 @@ func (ac *ApiClient) AddJob(key string, data interface{}) error {
 func (ac *ApiClient) GetNextJob(res interface{}) error {
 	url := ac.url(nextJobPath)
 	log.Debugf("about to issue post request to url %s", url)
-	job := ApiJob{}
 	resp, err := ac.Resty.R().
 		SetHeader("Content-Type", "application/json").
-		SetResult(&job).
+		SetResult(&res).
 		Post(url)
 	log.Debugf("received resp %+v and error %+v from url %s", resp, err, url)
 	//recordHTTPStats(nextImagePath, resp.StatusCode())
@@ -114,16 +113,15 @@ func (ac *ApiClient) GetNextJob(res interface{}) error {
 		//recordScannerError("unable to get next job -- bad status code")
 		return fmt.Errorf("unable to get next job; body %s and status code %d", string(resp.Body()), resp.StatusCode())
 	}
-	// TODO this is an ugly hack, find a better way to do this
 	return nil
 }
 
 // PostFinishedJob ...
-func (ac *ApiClient) PostFinishedJob(key string, result string) error {
+func (ac *ApiClient) PostFinishedJob(key string, errString string) error {
 	url := ac.url(finishedJobPath)
 	jobResult := &ApiJobResult{
-		key:    key,
-		result: result,
+		Key: key,
+		Err: errString,
 	}
 	log.Debugf("about to issue post request %+v to url %s", jobResult, url)
 	resp, err := ac.Resty.R().SetBody(jobResult).Post(url)

@@ -47,6 +47,7 @@ func RunScanQueue(configPath string, stop <-chan struct{}) {
 	prometheus.Unregister(prometheus.NewGoCollector())
 
 	queue := NewModel()
+	SetupHTTPServer(queue)
 
 	http.Handle("/metrics", promhttp.Handler())
 
