@@ -44,11 +44,11 @@ type Queue struct {
 	items []string
 }
 
-func (pq *Queue)add(item string) {
+func (pq *Queue) add(item string) {
 	pq.items = append(pq.items, item)
 }
 
-func (pq *Queue)pop() (string, error) {
+func (pq *Queue) pop() (string, error) {
 	if len(pq.items) == 0 {
 		return "", fmt.Errorf("queue is empty")
 	}
@@ -57,7 +57,7 @@ func (pq *Queue)pop() (string, error) {
 	return first, nil
 }
 
-func (pq *Queue)isEmpty() bool {
+func (pq *Queue) isEmpty() bool {
 	return len(pq.items) == 0
 }
 
@@ -69,6 +69,8 @@ func downloadAndScan(filepath string, unzipDir string, url string) {
 	}
 	log.Infof("unzipping file %s to %s", filepath, unzipDir)
 	err = util.Unzip(filepath, unzipDir)
-	if err != nil { panic(err) }
+	if err != nil {
+		panic(err)
+	}
 	log.Infof("successfully downloaded")
 }

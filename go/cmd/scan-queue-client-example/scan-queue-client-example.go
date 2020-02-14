@@ -22,22 +22,46 @@ package main
 
 import (
 	"github.com/blackducksoftware/cerebros/go/pkg/scanqueue"
-
-	//"fmt"
-	"os"
-
 	log "github.com/sirupsen/logrus"
 )
 
-func main() {
-	var configPath string
-	log.Info("starting scancli")
-	if len(os.Args) > 1 {
-		configPath = os.Args[1]
-	}
-	log.Infof("Config path: %s", configPath)
+type Job struct {
+	Name  string
+	Value string
+}
 
-	// Run the scanner
-	stop := make(chan struct{})
-	scanqueue.RunScanQueue(configPath, stop)
+func main() {
+	log.SetLevel(log.DebugLevel)
+
+	client := scanqueue.NewApiClient("localhost", 4100)
+
+	addJob(client, "job3", Job{"abc", "def"})
+	addJob(client, "job4", Job{"qrs", "tuv"})
+
+	getModel(client)
+
+	nextJob := Job{}
+	err := client.GetNextJob(&nextJob)
+	if err != nil {
+		panic(err)
+	}
+	log.Infof("next job: %+v", nextJob)
+
+	getModel(client)
+}
+
+func addJob(client *scanqueue.ApiClient, key string, job Job) {
+	err := client.AddJob(key, job)
+	if err != nil {
+		panic(err)
+	}
+	log.Infof("add job succeeded")
+}
+
+func getModel(client *scanqueue.ApiClient) {
+	modelString, err := client.GetModel()
+	if err != nil {
+		panic(err)
+	}
+	log.Infof("model: %s", modelString)
 }

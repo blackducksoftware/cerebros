@@ -19,15 +19,14 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package model
+package scanqueue
 
 import (
-	//"fmt"
-	//"reflect"
-	"time"
+	"encoding/json"
+	"github.com/pkg/errors"
+	"net/http"
 
 	"github.com/blackducksoftware/cerebros/go/pkg/util"
-	//"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -35,24 +34,20 @@ const (
 	actionChannelSize = 100
 )
 
-// Model is the root of the core model
+// Model ...
 type Model struct {
-	// Pods is a map of qualified name ("<namespace>/<name>") to pod
-	ScanQueue   *util.PriorityQueue
-	Transitions []*Transition
-	//
-	actions chan *action
+	ScanQueue *util.PriorityQueue
+	actions   chan *action
 }
 
 // NewModel .....
 func NewModel() *Model {
 	model := &Model{
-		ScanQueue:   util.NewPriorityQueue(),
-		Transitions: []*Transition{},
-		actions:     make(chan *action, actionChannelSize),
+		ScanQueue: util.NewPriorityQueue(),
+		actions:   make(chan *action, actionChannelSize),
 	}
 	go func() {
-		stop := time.Now()
+		//stop := time.Now()
 		for {
 			select {
 			case nextAction := <-model.actions:
@@ -60,58 +55,93 @@ func NewModel() *Model {
 				log.Debugf("processing model action of type %s", actionName)
 
 				// metrics: how many messages are waiting?
-				recordNumberOfMessagesInQueue(len(model.actions))
+				//recordNumberOfMessagesInQueue(len(model.actions))
 
 				// metrics: log message type
-				recordMessageType(actionName)
+				//recordMessageType(actionName)
 
 				// metrics: how long idling since the last action finished processing?
-				start := time.Now()
-				recordReducerActivity(false, start.Sub(stop))
+				//start := time.Now()
+				//recordReducerActivity(false, start.Sub(stop))
 
 				// actually do the work
 				err := nextAction.apply()
 				if err != nil {
 					log.Errorf("problem processing action %s: %v", actionName, err)
-					recordActionError(actionName)
+					//recordActionError(actionName)
 				}
 
 				// metrics: how long did the work take?
-				stop = time.Now()
-				recordReducerActivity(true, stop.Sub(start))
+				//stop = time.Now()
+				//recordReducerActivity(true, stop.Sub(start))
 			}
 		}
 	}()
 	return model
 }
 
-// Public API
+// Private API
 
-// FinishScanJob should be called when the scan client has finished.
-/*
-func (model *Model) FinishScanJob(image *Image, err error) {
-	log.Infof("finish scan job: %+v, %v", image, err)
-	model.actions <- &action{"finishScanJob", func() error {
-		return model.finishRunningScanClient(image, err)
-	}}
+func (model *Model) addJob(key string, data interface{}) error {
+	return model.ScanQueue.Add(key, 0, data)
 }
 
-// ScanDidFinish should be called when:
-// - the Hub scan finishes
-// - upon startup, when scan results are first fetched
-func (model *Model) ScanDidFinish(sha DockerImageSha, scanResults *hub.ScanResults) {
-	model.actions <- &action{"scanDidFinish", func() error {
-		return model.scanDidFinish(sha, scanResults)
-	}}
+func (model *Model) getNextJob() (string, interface{}) {
+	key, job, err := model.ScanQueue.Pop()
+	if err != nil {
+		log.Errorf("unable to get next job: %s", err)
+		return "", nil
+	}
+	return key, job
 }
 
-// GetScanResults ...
-func (model *Model) GetScanResults() api.ScanResults {
-	done := make(chan api.ScanResults)
-	model.actions <- &action{"getScanResults", func() error {
-		scanResults, err := scanResults(model)
+func (model *Model) finishJob(key string, err string) error {
+	// don't do anything for now
+	// TODO do something later
+	return errors.New("finishJob is not implemented")
+}
+
+// HTTP responder implementation -- Public API
+
+func (model *Model) AddJob(job ApiJob) error {
+
+	key := job.Key
+	data := job.Data
+	done := make(chan error)
+	model.actions <- &action{"addJob", func() error {
+		log.Debugf("adding job: key %s, data %+v", key, data)
+		error := model.addJob(key, data)
 		go func() {
-			done <- scanResults
+			done <- error
+		}()
+		return error
+	}}
+	return <-done
+}
+
+// GetNextJob returns nil if no job was found
+func (model *Model) GetNextJob() (interface{}, error) {
+	done := make(chan struct{})
+	var job interface{}
+	var err error
+	model.actions <- &action{"getNextJob", func() error {
+		log.Debugf("looking for next job")
+		_, job = model.getNextJob()
+		close(done)
+		return nil
+	}}
+	<-done
+	return job, err
+}
+
+// PostFinishJob ...
+func (model *Model) PostFinishJob(jobResult ApiJobResult) error {
+	log.Infof("finish job: %+v", jobResult)
+	done := make(chan error)
+	model.actions <- &action{"finishJob", func() error {
+		err := model.finishJob(jobResult.Key, jobResult.Err)
+		go func() {
+			done <- err
 		}()
 		return err
 	}}
@@ -119,306 +149,31 @@ func (model *Model) GetScanResults() api.ScanResults {
 }
 
 // GetModel ...
-func (model *Model) GetModel() *api.CoreModel {
-	done := make(chan *api.CoreModel)
+func (model *Model) GetModel() ([]byte, error) {
+	done := make(chan struct{})
+	var modelJson []byte
+	var err error
 	model.actions <- &action{"getModel", func() error {
-		apiModel := coreModelToAPIModel(model)
-		go func() {
-			done <- apiModel
-		}()
-		return nil
-	}}
-	return <-done
-}
-
-// GetImages returns images in that status
-func (model *Model) GetImages(status ScanStatus) []DockerImageSha {
-	done := make(chan []DockerImageSha)
-	model.actions <- &action{"getImages", func() error {
-		shas := model.getShas(status)
-		go func() {
-			done <- shas
-		}()
-		return nil
-	}}
-	return <-done
-}
-
-// GetMetrics calculates useful metrics for observing the progress of the model
-// over time.
-func (model *Model) GetMetrics() *Metrics {
-	done := make(chan *Metrics)
-	model.actions <- &action{"getMetrics", func() error {
-		modelMetrics := metrics(model)
-		go func() {
-			done <- modelMetrics
-		}()
-		return nil
-	}}
-	return <-done
-}
-
-// GetNextImage ...
-func (model *Model) GetNextImage() *Image {
-	done := make(chan *Image)
-	model.actions <- &action{"getNextImage", func() error {
-		log.Debugf("looking for next image to scan")
-		image, err := model.getNextImageFromScanQueue()
-		go func() {
-			done <- image
-		}()
+		log.Debugf("model: %+v", model)
+		modelJson, err = json.MarshalIndent(model.ScanQueue.Dump(), "", "  ")
+		log.Debugf("model json: %s", string(modelJson))
+		close(done)
 		return err
 	}}
-	return <-done
+	<-done
+	return modelJson, err
 }
 
-// StartScanClient ...
-func (model *Model) StartScanClient(sha DockerImageSha) error {
-	errCh := make(chan error)
-	model.actions <- &action{"startScanClient", func() error {
-		err := model.startScanClient(sha)
-		go func() {
-			errCh <- err
-		}()
-		return err
-	}}
-	return <-errCh
+// NotFound .....
+func (model *Model) NotFound(w http.ResponseWriter, r *http.Request) {
+	log.Errorf("HTTPResponder not found from request %+v", r)
+	//recordHTTPNotFound(r)
+	http.NotFound(w, r)
 }
 
-// Package API
-
-// AddImage adds an image to the model, adding it to the queue for hub checking.
-func (model *Model) addImage(image Image) error {
-	log.Debugf("about to add image %s, priority %d", image.Sha, image.Priority)
-	added, err := model.createImage(image)
-	log.Debugf("added image %s? %t", image.Sha, added)
-	return err
+// Error .....
+func (model *Model) Error(w http.ResponseWriter, r *http.Request, err error, statusCode int) {
+	log.Errorf("HTTPResponder error %s with code %d from request %+v", err.Error(), statusCode, r)
+	//recordHTTPError(r, err, statusCode)
+	http.Error(w, err.Error(), statusCode)
 }
-
-func (model *Model) scanDidFinish(sha DockerImageSha, scanResults *hub.ScanResults) error {
-	imageInfo, ok := model.Images[sha]
-	if !ok {
-		return fmt.Errorf("unable to handle scanDidFinish for %s: sha not found", sha)
-	}
-	if scanResults == nil {
-		switch imageInfo.ScanStatus {
-		case ScanStatusUnknown:
-			return model.setImageScanStatus(sha, ScanStatusInQueue)
-		default:
-			return fmt.Errorf("unexpectedly found nil ScanResults for image %s in state %s", sha, imageInfo.ScanStatus)
-		}
-	} else if scanResults.ScanSummaryStatus() == hub.ScanSummaryStatusSuccess {
-		imageInfo.ScanResults = scanResults
-		switch imageInfo.ScanStatus {
-		case ScanStatusUnknown, ScanStatusInQueue, ScanStatusRunningScanClient, ScanStatusRunningHubScan:
-			return model.setImageScanStatus(sha, ScanStatusComplete)
-		default: // case ScanStatusComplete:
-			return nil // nothing to do
-		}
-	} else if scanResults.ScanSummaryStatus() == hub.ScanSummaryStatusInProgress {
-		switch imageInfo.ScanStatus {
-		case ScanStatusUnknown, ScanStatusInQueue:
-			return model.setImageScanStatus(sha, ScanStatusRunningHubScan)
-		default: // case ScanStatusRunningScanClient, ScanStatusRunningHubScan, ScanStatusComplete:
-			return nil // nothing to do
-		}
-	} else { // hub.ScanSummaryStatusFailure
-		switch imageInfo.ScanStatus {
-		case ScanStatusUnknown, ScanStatusRunningHubScan:
-			return model.setImageScanStatus(sha, ScanStatusInQueue)
-		default: // case ScanStatusInQueue, ScanStatusRunningScanClient, ScanStatusComplete:
-			return fmt.Errorf("cannot handle scanDidFinish %s for image %s: cannot transition from state %s", imageInfo.ScanStatus, sha, imageInfo.ScanStatus.String())
-		}
-	}
-}
-
-// DeleteImage removes an image from the model.
-// WARNING: It should ABSOLUTELY NOT be called for images that are still referenced by one or more pods.
-// WARNING: It should *probably* not be called for images in the ScanStatusRunningScanClient
-//   or ScanStatusRunningHubScan states.
-func (model *Model) deleteImage(sha DockerImageSha) error {
-	if _, ok := model.Images[sha]; !ok {
-		return fmt.Errorf("unable to delete image %s, not found", sha)
-	}
-	delete(model.Images, sha)
-	return nil
-}
-
-// image state transitions
-
-func (model *Model) leaveState(sha DockerImageSha, state ScanStatus) error {
-	switch state {
-	case ScanStatusInQueue:
-		return model.removeImageFromScanQueue(sha)
-	case ScanStatusUnknown, ScanStatusRunningScanClient, ScanStatusRunningHubScan, ScanStatusComplete:
-		return nil
-	default:
-		return fmt.Errorf("leaveState: invalid ScanStatus %d", state)
-	}
-}
-
-func (model *Model) enterState(sha DockerImageSha, state ScanStatus) error {
-	switch state {
-	case ScanStatusInQueue:
-		return model.addImageToScanQueue(sha)
-	case ScanStatusUnknown, ScanStatusRunningScanClient, ScanStatusRunningHubScan, ScanStatusComplete:
-		return nil
-	default:
-		return fmt.Errorf("enterState: invalid ScanStatus %d", state)
-	}
-}
-
-func (model *Model) setImageScanStatusForSha(sha DockerImageSha, newScanStatus ScanStatus) error {
-	imageInfo, ok := model.Images[sha]
-	if !ok {
-		return fmt.Errorf("can not set scan status for sha %s, sha not found", string(sha))
-	}
-
-	isLegal := IsLegalTransition(imageInfo.ScanStatus, newScanStatus)
-	recordStateTransition(imageInfo.ScanStatus, newScanStatus, isLegal)
-	if !isLegal {
-		return fmt.Errorf("illegal image state transition from %s to %s for sha %s", imageInfo.ScanStatus, newScanStatus, sha)
-	}
-
-	err := model.leaveState(sha, imageInfo.ScanStatus)
-	if err != nil {
-		return errors.Annotatef(err, "unable to leaveState %s for sha %s", imageInfo.ScanStatus.String(), sha)
-	}
-	err = model.enterState(sha, newScanStatus)
-	if err != nil {
-		return errors.Annotatef(err, "unable to enter state %s for sha %s", newScanStatus, sha)
-	}
-	imageInfo.setScanStatus(newScanStatus)
-
-	return nil
-}
-
-// createImage adds the image to the model, but not to the scan queue
-func (model *Model) createImage(image Image) (bool, error) {
-	imageInfo, ok := model.Images[image.Sha]
-	added := !ok
-	if ok {
-		newPriority, oldPriority := image.Priority, imageInfo.Priority
-		log.Debugf("not adding image %s to model, already have in cache", image.PullSpec())
-		if newPriority <= oldPriority {
-			log.Debugf("not decreasing priority for image %s", image.PullSpec())
-			return added, nil
-		}
-		if oldPriority < 0 {
-			log.Debugf("not increasing priority for image %s, old priority was %d", image.PullSpec(), oldPriority)
-			return added, nil
-		}
-		log.Debugf("upgrading priority for image %s to %d", image.PullSpec(), image.Priority)
-		imageInfo.SetPriority(image.Priority)
-		if imageInfo.ScanStatus != ScanStatusInQueue {
-			return added, nil
-		}
-		err := model.setImagePriority(image.Sha, image.Priority)
-		if err != nil {
-			return added, errors.Annotatef(err, "unable to set image %s priority in scan queue to %d", image.Sha, image.Priority)
-		}
-		return added, nil
-	}
-	newInfo := NewImageInfo(image, &RepoTag{Repository: image.Repository, Tag: image.Tag})
-	model.Images[image.Sha] = newInfo
-	log.Debugf("added image %s to model", image.PullSpec())
-	return added, nil
-}
-
-// Be sure that `sha` is in `model.Images` before calling this method
-func (model *Model) unsafeGet(sha DockerImageSha) *ImageInfo {
-	results, ok := model.Images[sha]
-	if !ok {
-		message := fmt.Sprintf("expected to already have image %s, but did not", string(sha))
-		log.Error(message)
-		panic(message)
-	}
-	return results
-}
-
-// Adding and removing from scan queues.  These are "unsafe" calls and should
-// only be called by methods that have already checked all the error conditions
-// (things are in the right state, things that are expected to be present are
-// actually present, etc.)
-
-func (model *Model) addImageToScanQueue(sha DockerImageSha) error {
-	imageInfo, ok := model.Images[sha]
-	if !ok {
-		return fmt.Errorf("unable to add image %s to scan queue: not found", sha)
-	}
-	return model.ImageScanQueue.Add(string(sha), imageInfo.Priority, sha)
-}
-
-func (model *Model) setImagePriority(sha DockerImageSha, newPriority int) error {
-	return model.ImageScanQueue.Set(string(sha), newPriority)
-}
-
-func (model *Model) removeImageFromScanQueue(sha DockerImageSha) error {
-	_, err := model.ImageScanQueue.Remove(string(sha))
-	return err
-}
-
-// "Public" methods
-
-func (model *Model) setImageScanStatus(sha DockerImageSha, newScanStatus ScanStatus) error {
-	log.Debugf("setImageScanStatus for %s to %s", sha, newScanStatus)
-	imageInfo, ok := model.Images[sha]
-	statusString := "sha not found"
-	if ok {
-		statusString = imageInfo.ScanStatus.String()
-	}
-	err := model.setImageScanStatusForSha(sha, newScanStatus)
-	model.ImageTransitions = append(model.ImageTransitions, NewImageTransition(sha, statusString, newScanStatus, err))
-	if err != nil {
-		return errors.Annotatef(err, "unable to transition image state for sha %s from <%s> to %s", sha, statusString, newScanStatus)
-	}
-	log.Debugf("successfully transitioned image %s from <%s> to %s", sha, statusString, newScanStatus)
-	return nil
-}
-
-// getNextImageFromScanQueue simply returns the item at the front of the scan queue,
-// non-destructively.
-func (model *Model) getNextImageFromScanQueue() (*Image, error) {
-	first := model.ImageScanQueue.Peek()
-	switch sha := first.(type) {
-	case DockerImageSha:
-		image := model.unsafeGet(sha).Image()
-		return &image, nil
-	case nil:
-		return nil, nil
-	default:
-		return nil, fmt.Errorf("expected type DockerImageSha from priority queue, got %s", reflect.TypeOf(first))
-	}
-}
-
-// startScanClient attempts to move `sha` from state InQueue to state RunningScanClient,
-// returning an error if the sha doesn't exist, or is not in state InQueue.
-func (model *Model) startScanClient(sha DockerImageSha) error {
-	imageInfo, ok := model.Images[sha]
-	if !ok {
-		return fmt.Errorf("unable to start scan client for image %s, not found", sha)
-	}
-	if imageInfo.ScanStatus != ScanStatusInQueue {
-		return fmt.Errorf("unable to start scan client for image %s, not in state InQueue", sha)
-	}
-	return model.setImageScanStatus(sha, ScanStatusRunningScanClient)
-}
-
-func (model *Model) finishRunningScanClient(image *Image, scanClientError error) error {
-	imageInfo, ok := model.Images[image.Sha]
-
-	// if we don't have this sha already, we don't need to do anything
-	if !ok {
-		return fmt.Errorf("finish running scan client -- expected to already have image %s, but did not", string(image.Sha))
-	}
-
-	scanStatus := ScanStatusRunningHubScan
-	if scanClientError != nil {
-		imageInfo.SetPriority(-1)
-		scanStatus = ScanStatusInQueue
-	}
-
-	return model.setImageScanStatus(image.Sha, scanStatus)
-}
-
-*/

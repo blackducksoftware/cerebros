@@ -68,6 +68,7 @@ func (pq *PriorityQueue) Dump() []map[string]interface{} {
 		elems[i] = map[string]interface{}{
 			"Key":      pq.items[i].key,
 			"Priority": pq.items[i].priority,
+			"Value": pq.items[i].value,
 		}
 	}
 	return elems
@@ -120,9 +121,9 @@ func (pq *PriorityQueue) Peek() interface{} {
 }
 
 // Pop removes the highest priority element, returning an error if empty.
-func (pq *PriorityQueue) Pop() (interface{}, error) {
+func (pq *PriorityQueue) Pop() (string, interface{}, error) {
 	if pq.size == 0 {
-		return nil, fmt.Errorf("cannot pop -- priority queue empty")
+		return "", nil, fmt.Errorf("cannot pop -- priority queue empty")
 	}
 	item := pq.items[0]
 	// clean up
@@ -137,7 +138,7 @@ func (pq *PriorityQueue) Pop() (interface{}, error) {
 		pq.siftDown(0)
 	}
 	// done
-	return item.value, nil
+	return item.key, item.value, nil
 }
 
 // Size returns the number of elements in the queue.

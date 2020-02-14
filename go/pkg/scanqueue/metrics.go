@@ -19,7 +19,10 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package model
+package scanqueue
+
+/*
+TODO
 
 import (
 	"fmt"
@@ -149,3 +152,5 @@ func init() {
 	}, []string{"message"})
 	prometheus.MustRegister(reducerMessageCounter)
 }
+
+*/

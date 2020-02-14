@@ -25,10 +25,11 @@ import (
 	"fmt"
 	"github.com/blackducksoftware/cerebros/go/pkg/scancli/docker"
 	"github.com/blackducksoftware/cerebros/go/pkg/scancli/hubcli"
+	"github.com/blackducksoftware/cerebros/go/pkg/scanqueue"
 	"os"
 	"time"
 
-	"github.com/juju/errors"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -39,7 +40,7 @@ const (
 // Scanner ...
 type Scanner struct {
 	imageScanner    *hubcli.ImageScanner
-	scanQueueClient *ScanQueueClient
+	scanQueueClient *scanqueue.ApiClient
 	stop            <-chan struct{}
 }
 
@@ -59,12 +60,12 @@ func NewScanner(config *Config, stop <-chan struct{}) (*Scanner, error) {
 		config.Hub.Port,
 		hubcli.OSTypeLinux)
 	if err != nil {
-		return nil, errors.Annotatef(err, "unable to instantiate hub scan client")
+		return nil, errors.Wrapf(err, "unable to instantiate hub scan client")
 	}
 
 	return &Scanner{
 		imageScanner:    hubcli.NewImageScanner(imagePuller, scanClient, config.Scanner.GetImageDirectory(), stop),
-		scanQueueClient: NewScanQueueClient(config.ScanQueue.Host, config.ScanQueue.Port),
+		scanQueueClient: scanqueue.NewApiClient(config.ScanQueue.Host, config.ScanQueue.Port),
 		stop:            stop}, nil
 }
 
@@ -85,7 +86,8 @@ func (sm *Scanner) StartRequestingScanJobs() {
 
 func (sm *Scanner) requestAndRunScanJob() {
 	log.Debug("requesting scan job")
-	nextImage, err := sm.scanQueueClient.GetNextImage()
+	var nextImage NextImage
+	err := sm.scanQueueClient.GetNextJob(&nextImage)
 	if err != nil {
 		log.Errorf("unable to request scan job: %s", err.Error())
 		return
@@ -113,9 +115,10 @@ func (sm *Scanner) requestAndRunScanJob() {
 		errorString = err.Error()
 	}
 
-	finishedJob := FinishedScanClientJob{Err: errorString, ImageSpec: *nextImage.ImageSpec}
-	log.Infof("about to finish job, going to send over %+v", finishedJob)
-	sm.scanQueueClient.PostFinishedScan(&finishedJob)
+	//finishedJob := FinishedScanClientJob{Err: errorString, ImageSpec: *nextImage.ImageSpec}
+	//log.Infof("about to finish job, going to send over %+v", finishedJob)
+	log.Infof("finished job, sending over sha %s and error %s", spec.Sha, errorString)
+	err = sm.scanQueueClient.PostFinishedJob(spec.Sha, errorString)
 	if err != nil {
 		log.Errorf("unable to finish scan job: %s", err.Error())
 	}

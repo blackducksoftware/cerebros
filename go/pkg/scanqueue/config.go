@@ -19,15 +19,40 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package model
+package scanqueue
 
 import (
-	"fmt"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
-func combineErrors(message string, errs []error) error {
-	if len(errs) == 0 {
-		return nil
+// Config ...
+type Config struct {
+	Port int
+
+	LogLevel string
+}
+
+// GetLogLevel ...
+func (config *Config) GetLogLevel() (log.Level, error) {
+	return log.ParseLevel(config.LogLevel)
+}
+
+// GetConfig ...
+func GetConfig(configPath string) (*Config, error) {
+	var config *Config
+
+	viper.SetConfigFile(configPath)
+	err := viper.ReadInConfig()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to ReadInConfig")
 	}
-	return fmt.Errorf("combined errors from %s: %+v", message, errs)
+
+	err = viper.Unmarshal(&config)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal config")
+	}
+
+	return config, nil
 }

@@ -19,7 +19,9 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package model
+package scanqueue
+
+/*
 
 import (
 	"encoding/json"
@@ -163,3 +165,5 @@ func RunModelTests() {
 		})
 	})
 }
+
+*/

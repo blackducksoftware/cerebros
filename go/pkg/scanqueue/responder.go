@@ -19,24 +19,20 @@ specific language governing permissions and limitations
 under the License.
 */
 
-package model
+package scanqueue
 
-import "time"
+import (
+	"net/http"
+)
 
-// Transition .....
-type Transition struct {
-	From string
-	To   ScanStatus
-	Err  error
-	Time time.Time
-}
+// Responder .....
+type Responder interface {
+	GetModel() ([]byte, error)
 
-// NewTransition .....
-func NewTransition(from string, to ScanStatus, err error) *Transition {
-	return &Transition{
-		From: from,
-		To:   to,
-		Err:  err,
-		Time: time.Now(),
-	}
+	AddJob(job ApiJob) error
+	GetNextJob() (interface{}, error)
+	PostFinishJob(result ApiJobResult) error
+
+	NotFound(w http.ResponseWriter, r *http.Request)
+	Error(w http.ResponseWriter, r *http.Request, err error, statusCode int)
 }
