@@ -47,45 +47,58 @@ type PolarisScanner struct {
 func NewPolarisScanner(pathToPolarisCLI string, config PolarisConfig) (*PolarisScanner, error) {
 	err := os.Setenv(polarisUserTimeout, "1")
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to setenv for %s", polarisUserTimeout)
+		return nil, errors.WithMessagef(err, "unable to setenv for %s", polarisUserTimeout)
 	}
 	ps := &PolarisScanner{config: config, pathToPolarisCLI: pathToPolarisCLI}
 	if err := ps.configurePolarisCliWithAccessToken(); err != nil {
-		return nil, errors.Wrapf(err, "unable to configure polaris cli with access token")
+		return nil, errors.WithMessagef(err, "unable to configure polaris cli with access token")
 	}
 	return ps, nil
 }
 
 func (ps *PolarisScanner) Capture(capturePath string) (string, error) {
-	log.Infof("Running Polaris Capture")
-	if output, err := execSh("polaris capture", capturePath); err != nil {
-		return "", errors.Wrapf(err,"unable to run polaris capture: %s", output)
+	log.Infof("Running Polaris Capture on path %s", capturePath)
+	shellCmd := ps.polarisBinaryPath() + " capture"
+	if output, err := execSh(shellCmd, capturePath); err != nil {
+		return "", errors.WithMessagef(err,"unable to run polaris capture: %s", output)
 	}
 
 	log.Infof("Deleting polaris.yml")
 	if err := os.Remove(path.Join(capturePath, "polaris.yml")); err != nil {
-		return "", errors.Wrapf(err, "unable to remove polaris.yml")
+		return "", errors.WithMessagef(err, "unable to remove polaris.yml")
 	}
 
 	return path.Join(capturePath, ".synopsys/polaris/data/coverity/2019.06-5/idir"), nil
 }
 
+func (ps *PolarisScanner)polarisBinaryPath() string {
+	return path.Join(ps.pathToPolarisCLI, "polaris")
+}
+
+func (ps *PolarisScanner)CaptureAndScan(capturePath string) error {
+	idirPath, err := ps.Capture(capturePath)
+	if err != nil {
+		return errors.WithMessagef(err, "unable to capture path %s", capturePath)
+	}
+	return ps.Scan(capturePath, idirPath)
+}
+
 func (ps *PolarisScanner) Scan(repoPath, idirPath string) error {
-	shellCmd := "polaris setup"
+	shellCmd := ps.polarisBinaryPath() + " setup"
 	log.Infof("attempting to exec %s in %s", shellCmd, repoPath)
 	if output, err := execSh(shellCmd, repoPath); err != nil {
-		return errors.Wrapf(err, "unable to exec %s in %s: %s", shellCmd, repoPath, output)
+		return errors.WithMessagef(err, "unable to exec %s in %s: %s", shellCmd, repoPath, output)
 	}
 
 	polarisYmlPath := path.Join(repoPath, "polaris.yml")
 	content, err := ioutil.ReadFile(polarisYmlPath)
 	if err != nil {
-		return errors.Wrapf(err, "unable to read file %s", polarisYmlPath)
+		return errors.WithMessagef(err, "unable to read file %s", polarisYmlPath)
 	}
 
 	CoverityConfig := make(map[string]interface{})
 	if err := yaml.Unmarshal(content, CoverityConfig); err != nil {
-		return errors.Wrapf(err, "unable to unmarshal yaml for coverity config")
+		return errors.WithMessagef(err, "unable to unmarshal yaml for coverity config")
 	}
 	// TODO - Need to get the CoverityConfig struct from somewhere :/
 	CoverityConfig["capture"] = map[string]interface{}{
@@ -95,32 +108,33 @@ func (ps *PolarisScanner) Scan(repoPath, idirPath string) error {
 			},
 		},
 	}
-	CoverityConfigYaml, err := yaml.Marshal(CoverityConfig)
+	coverityConfigYaml, err := yaml.Marshal(CoverityConfig)
 	if err != nil {
-		return errors.Wrapf(err,"unable to marshal yaml for coverity config")
+		return errors.WithMessagef(err,"unable to marshal yaml for coverity config")
 	}
 
-	if err := ioutil.WriteFile(polarisYmlPath, CoverityConfigYaml, os.FileMode(700)); err != nil {
-		return errors.Wrapf(err, "unable to write file %s", polarisYmlPath)
+	if err := ioutil.WriteFile(polarisYmlPath, coverityConfigYaml, os.FileMode(700)); err != nil {
+		return errors.WithMessagef(err, "unable to write file %s", polarisYmlPath)
 	}
 
-	analyzeCmd := "polaris analyze"
+	analyzeCmd := ps.polarisBinaryPath() + " analyze"
 	if output, err := execSh(analyzeCmd, repoPath); err != nil {
-		return errors.Wrapf(err, "unable to exec %s in %s: %s", analyzeCmd, repoPath, output)
+		return errors.WithMessagef(err, "unable to exec %s in %s: %s", analyzeCmd, repoPath, output)
 	}
 
 	return nil
 }
 
-func execSh(shellCmd, workdir string) (string, error) {
+func execSh(shellCmd, directory string) (string, error) {
 	execCmd := exec.Command("sh", "-c", shellCmd)
-	if len(workdir) > 0 {
-		execCmd.Dir = path.Clean(workdir)
+	if len(directory) > 0 {
+		execCmd.Dir = path.Clean(directory)
 	}
 
+	log.Infof("about to run %s in directory %s", execCmd.String(), directory)
 	output, err := execCmd.CombinedOutput()
 	if err != nil {
-		return string(output), errors.Wrapf(errors.WithStack(err), "command failed: %s", output)
+		return string(output), errors.Wrapf(err, "command failed: %s", output)
 	}
 
 	return string(output), nil
@@ -129,17 +143,17 @@ func execSh(shellCmd, workdir string) (string, error) {
 func (ps *PolarisScanner)configurePolarisCliWithAccessToken() error {
 	err := os.Setenv(polarisServerURL, ps.config.PolarisURL)
 	if err != nil {
-		return errors.Wrapf(err, "unable to set env var %s", polarisServerURL)
+		return errors.WithMessagef(err, "unable to set env var %s", polarisServerURL)
 	}
 	err = os.Setenv(polarisAccessToken, ps.config.PolarisToken)
 	if err != nil {
-		return errors.Wrapf(err, "unable to set env var %s", polarisAccessToken)
+		return errors.WithMessagef(err, "unable to set env var %s", polarisAccessToken)
 	}
 
-	cmd := "polaris configure"
+	cmd := ps.polarisBinaryPath() + " configure"
 	if output, err := execSh(cmd, ps.pathToPolarisCLI); err != nil {
 		log.Errorf("error Output: %s\n", output)
-		return errors.Wrapf(err, "unable to run shell cmd: %s", output)
+		return errors.WithMessagef(err, "unable to run shell cmd: %s", output)
 	}
 
 	return nil

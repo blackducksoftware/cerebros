@@ -22,22 +22,53 @@ package main
 
 import (
 	"github.com/blackducksoftware/cerebros/go/pkg/jobrunner"
+	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"os"
 )
 
+type Config struct {
+	PolarisCLIPath string
+	CapturePath string
+	WorkingDirectory string
+	PolarisURL string
+	PolarisToken string
+}
+
+// GetConfig ...
+func GetConfig(configPath string) (*Config, error) {
+	var config *Config
+
+	viper.SetConfigFile(configPath)
+	err := viper.ReadInConfig()
+	if err != nil {
+		return nil, errors.Annotatef(err, "failed to ReadInConfig")
+	}
+
+	err = viper.Unmarshal(&config)
+	if err != nil {
+		return nil, errors.Annotatef(err, "failed to unmarshal config")
+	}
+
+	return config, nil
+}
+
 func main() {
-	scanner, err := jobrunner.NewPolarisScanner(jobrunner.PolarisConfig{
-		PolarisURL:   os.Args[1],
-		PolarisToken: os.Args[2],
+	config, err := GetConfig(os.Args[1])
+	scanner, err := jobrunner.NewPolarisScanner(config.PolarisCLIPath, jobrunner.PolarisConfig{
+		PolarisURL: config.PolarisURL,
+		PolarisToken: config.PolarisToken,
 	})
 	if err != nil {
+		log.Errorf("%+v", err)
 		panic(err)
 	}
-	dir, err := scanner.Capture("/Users/mfenwick/gitprojects/unparse")
+	err = scanner.CaptureAndScan(config.CapturePath)
 	if err != nil {
 		panic(err)
 	}
-	log.Infof("directory: %s", dir)
+	log.Infof("successfully captured and scanned %s", config.CapturePath)
+
 	//scanner.Scan()
 }
