@@ -1,13 +1,38 @@
+/*
+Copyright (C) 2020 Synopsys, Inc.
+
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements. See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership. The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied. See the License for the
+specific language governing permissions and limitations
+under the License.
+*/
 package jobrunner
 
 import (
-	"fmt"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
 )
+
+var polarisUserTimeout = "POLARIS_USER_INPUT_TIMEOUT_MINUTES"
+var polarisServerURL = "POLARIS_SERVER_URL"
+var polarisAccessToken = "POLARIS_ACCESS_TOKEN"
 
 type PolarisConfig struct {
 	PolarisURL   string
@@ -16,50 +41,51 @@ type PolarisConfig struct {
 
 type PolarisScanner struct {
 	config PolarisConfig
-	wd     string
+	pathToPolarisCLI string
 }
 
-func NewPolarisScanner(config PolarisConfig) (*PolarisScanner, error) {
-	wd, err := os.Getwd()
+func NewPolarisScanner(pathToPolarisCLI string, config PolarisConfig) (*PolarisScanner, error) {
+	err := os.Setenv(polarisUserTimeout, "1")
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "unable to setenv for %s", polarisUserTimeout)
 	}
-
-	os.Setenv("POLARIS_USER_INPUT_TIMEOUT_MINUTES", "1")
-	if err := configurePolarisCliWithAccessToken(config.PolarisURL, config.PolarisToken, wd); err != nil {
-		return nil, err
+	ps := &PolarisScanner{config: config, pathToPolarisCLI: pathToPolarisCLI}
+	if err := ps.configurePolarisCliWithAccessToken(); err != nil {
+		return nil, errors.Wrapf(err, "unable to configure polaris cli with access token")
 	}
-	return &PolarisScanner{config: config, wd: wd}, nil
+	return ps, nil
 }
 
-func (p *PolarisScanner) Capture(capturePath string) (string, error) {
-	fmt.Printf("Running Polaris Capture\n")
+func (ps *PolarisScanner) Capture(capturePath string) (string, error) {
+	log.Infof("Running Polaris Capture")
 	if output, err := execSh("polaris capture", capturePath); err != nil {
-		return "", fmt.Errorf("%s - %s", output, err)
+		return "", errors.Wrapf(err,"unable to run polaris capture: %s", output)
 	}
 
-	fmt.Printf("Deleting polaris.yml\n")
+	log.Infof("Deleting polaris.yml")
 	if err := os.Remove(path.Join(capturePath, "polaris.yml")); err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "unable to remove polaris.yml")
 	}
 
 	return path.Join(capturePath, ".synopsys/polaris/data/coverity/2019.06-5/idir"), nil
 }
 
-func (p *PolarisScanner) Scan(repoPath, idirPath string) error {
-	if output, err := execSh("polaris setup", repoPath); err != nil {
-		return fmt.Errorf("%s - %s", output, err)
+func (ps *PolarisScanner) Scan(repoPath, idirPath string) error {
+	shellCmd := "polaris setup"
+	log.Infof("attempting to exec %s in %s", shellCmd, repoPath)
+	if output, err := execSh(shellCmd, repoPath); err != nil {
+		return errors.Wrapf(err, "unable to exec %s in %s: %s", shellCmd, repoPath, output)
 	}
 
 	polarisYmlPath := path.Join(repoPath, "polaris.yml")
 	content, err := ioutil.ReadFile(polarisYmlPath)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "unable to read file %s", polarisYmlPath)
 	}
 
 	CoverityConfig := make(map[string]interface{})
 	if err := yaml.Unmarshal(content, CoverityConfig); err != nil {
-		return err
+		return errors.Wrapf(err, "unable to unmarshal yaml for coverity config")
 	}
 	// TODO - Need to get the CoverityConfig struct from somewhere :/
 	CoverityConfig["capture"] = map[string]interface{}{
@@ -71,14 +97,16 @@ func (p *PolarisScanner) Scan(repoPath, idirPath string) error {
 	}
 	CoverityConfigYaml, err := yaml.Marshal(CoverityConfig)
 	if err != nil {
-		return err
-	}
-	if err := ioutil.WriteFile(polarisYmlPath, CoverityConfigYaml, os.FileMode(700)); err != nil {
-		return err
+		return errors.Wrapf(err,"unable to marshal yaml for coverity config")
 	}
 
-	if output, err := execSh("polaris analyze", repoPath); err != nil {
-		return fmt.Errorf("%s - %s", output, err)
+	if err := ioutil.WriteFile(polarisYmlPath, CoverityConfigYaml, os.FileMode(700)); err != nil {
+		return errors.Wrapf(err, "unable to write file %s", polarisYmlPath)
+	}
+
+	analyzeCmd := "polaris analyze"
+	if output, err := execSh(analyzeCmd, repoPath); err != nil {
+		return errors.Wrapf(err, "unable to exec %s in %s: %s", analyzeCmd, repoPath, output)
 	}
 
 	return nil
@@ -92,20 +120,28 @@ func execSh(shellCmd, workdir string) (string, error) {
 
 	output, err := execCmd.CombinedOutput()
 	if err != nil {
-		return string(output), fmt.Errorf("Command Failed - '%s' - %s - %s", shellCmd, output, err)
+		return string(output), errors.Wrapf(errors.WithStack(err), "command failed: %s", output)
 	}
-	return string(output), err
+
+	return string(output), nil
 }
 
-func configurePolarisCliWithAccessToken(envURL, token, wd string) error {
-	os.Setenv("POLARIS_SERVER_URL", envURL)
-	os.Setenv("POLARIS_ACCESS_TOKEN", token)
+func (ps *PolarisScanner)configurePolarisCliWithAccessToken() error {
+	err := os.Setenv(polarisServerURL, ps.config.PolarisURL)
+	if err != nil {
+		return errors.Wrapf(err, "unable to set env var %s", polarisServerURL)
+	}
+	err = os.Setenv(polarisAccessToken, ps.config.PolarisToken)
+	if err != nil {
+		return errors.Wrapf(err, "unable to set env var %s", polarisAccessToken)
+	}
 
 	cmd := "polaris configure"
-	if output, err := execSh(cmd, wd); err != nil {
-		fmt.Printf("error Output: %s\n", output)
-		return err
+	if output, err := execSh(cmd, ps.pathToPolarisCLI); err != nil {
+		log.Errorf("error Output: %s\n", output)
+		return errors.Wrapf(err, "unable to run shell cmd: %s", output)
 	}
+
 	return nil
 }
 

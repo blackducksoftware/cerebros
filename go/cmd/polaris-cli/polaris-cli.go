@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2018 Synopsys, Inc.
+Copyright (C) 2020 Synopsys, Inc.
 
 Licensed to the Apache Software Foundation (ASF) under one
 or more contributor license agreements. See the NOTICE file
@@ -18,43 +18,26 @@ KIND, either express or implied. See the License for the
 specific language governing permissions and limitations
 under the License.
 */
-
-package scanqueue
+package main
 
 import (
-	"github.com/pkg/errors"
+	"github.com/blackducksoftware/cerebros/go/pkg/jobrunner"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
+	"os"
 )
 
-// Config ...
-type Config struct {
-	Port int
-
-	Jobs []map[string]interface{}
-
-	LogLevel string
-}
-
-// GetLogLevel ...
-func (config *Config) GetLogLevel() (log.Level, error) {
-	return log.ParseLevel(config.LogLevel)
-}
-
-// GetConfig ...
-func GetConfig(configPath string) (*Config, error) {
-	var config *Config
-
-	viper.SetConfigFile(configPath)
-	err := viper.ReadInConfig()
+func main() {
+	scanner, err := jobrunner.NewPolarisScanner(jobrunner.PolarisConfig{
+		PolarisURL:   os.Args[1],
+		PolarisToken: os.Args[2],
+	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to ReadInConfig")
+		panic(err)
 	}
-
-	err = viper.Unmarshal(&config)
+	dir, err := scanner.Capture("/Users/mfenwick/gitprojects/unparse")
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to unmarshal config")
+		panic(err)
 	}
-
-	return config, nil
+	log.Infof("directory: %s", dir)
+	//scanner.Scan()
 }

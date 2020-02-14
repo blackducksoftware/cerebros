@@ -84,7 +84,11 @@ func main() {
 	)
 	failOnError(err, "Failed to register a consumer")
 
-	jb, err := jobrunner.NewPolarisScanner(polarisConfig)
+	workingDirectory, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	jb, err := jobrunner.NewPolarisScanner(workingDirectory, polarisConfig)
 	if err != nil {
 		panic(err)
 	}
