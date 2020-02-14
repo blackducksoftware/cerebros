@@ -32,13 +32,10 @@ import (
 	"path"
 )
 
-
-
 type IdirScanJob struct {
 	FromBucket     string `json:"fromBucket"`
 	FromBucketPath string `json:"fromBucketPath"`
 }
-
 
 const queueName = "idir-scanner"
 
@@ -46,7 +43,7 @@ func main() {
 	rabbitMQHost := getEnv("AMQP_URL", "amqp://guest:guest@localhost:5672/")
 	serviceAccountPath := getEnv("GCP_SERVICE_ACCOUNT_PATH", "/Users/jeremyd/Downloads/polaris-dev-233821-b8a3ac17ca0f.json")
 	polarisConfig := jobrunner.PolarisConfig{
-		PolarisURL:      getEnv("POLARIS_URL", "https://onprem-dev.dev.polaris.synopsys.com"),
+		PolarisURL:   getEnv("POLARIS_URL", "https://onprem-dev.dev.polaris.synopsys.com"),
 		PolarisToken: getEnv("POLARIS_TOKEN", ""),
 	}
 
@@ -76,11 +73,11 @@ func main() {
 
 	q, err := ch.QueueDeclare(
 		queueName, // name
-		true,   // durable
-		false,  // delete when unused
-		false,  // exclusive
-		false,  // no-wait
-		nil,    // arguments
+		true,      // durable
+		false,     // delete when unused
+		false,     // exclusive
+		false,     // no-wait
+		nil,       // arguments
 	)
 	failOnError(err, "Failed to declare a queue")
 

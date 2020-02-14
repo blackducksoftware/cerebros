@@ -40,7 +40,7 @@ type PolarisConfig struct {
 }
 
 type PolarisScanner struct {
-	config PolarisConfig
+	config           PolarisConfig
 	pathToPolarisCLI string
 }
 
@@ -60,7 +60,7 @@ func (ps *PolarisScanner) Capture(capturePath string) (string, error) {
 	log.Infof("Running Polaris Capture on path %s", capturePath)
 	shellCmd := ps.polarisBinaryPath() + " capture"
 	if output, err := execSh(shellCmd, capturePath); err != nil {
-		return "", errors.WithMessagef(err,"unable to run polaris capture: %s", output)
+		return "", errors.WithMessagef(err, "unable to run polaris capture: %s", output)
 	}
 
 	log.Infof("Deleting polaris.yml")
@@ -71,11 +71,11 @@ func (ps *PolarisScanner) Capture(capturePath string) (string, error) {
 	return path.Join(capturePath, ".synopsys/polaris/data/coverity/2019.06-5/idir"), nil
 }
 
-func (ps *PolarisScanner)polarisBinaryPath() string {
+func (ps *PolarisScanner) polarisBinaryPath() string {
 	return path.Join(ps.pathToPolarisCLI, "polaris")
 }
 
-func (ps *PolarisScanner)CaptureAndScan(capturePath string) error {
+func (ps *PolarisScanner) CaptureAndScan(capturePath string) error {
 	idirPath, err := ps.Capture(capturePath)
 	if err != nil {
 		return errors.WithMessagef(err, "unable to capture path %s", capturePath)
@@ -110,7 +110,7 @@ func (ps *PolarisScanner) Scan(repoPath, idirPath string) error {
 	}
 	coverityConfigYaml, err := yaml.Marshal(CoverityConfig)
 	if err != nil {
-		return errors.WithMessagef(err,"unable to marshal yaml for coverity config")
+		return errors.WithMessagef(err, "unable to marshal yaml for coverity config")
 	}
 
 	if err := ioutil.WriteFile(polarisYmlPath, coverityConfigYaml, os.FileMode(700)); err != nil {
@@ -140,7 +140,7 @@ func execSh(shellCmd, directory string) (string, error) {
 	return string(output), nil
 }
 
-func (ps *PolarisScanner)configurePolarisCliWithAccessToken() error {
+func (ps *PolarisScanner) configurePolarisCliWithAccessToken() error {
 	err := os.Setenv(polarisServerURL, ps.config.PolarisURL)
 	if err != nil {
 		return errors.WithMessagef(err, "unable to set env var %s", polarisServerURL)

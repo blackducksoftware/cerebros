@@ -30,10 +30,9 @@ import (
 
 type Config struct {
 	PolarisCLIPath string
-	CapturePath string
-	WorkingDirectory string
-	PolarisURL string
-	PolarisToken string
+	CapturePath    string
+	PolarisURL     string
+	PolarisToken   string
 }
 
 // GetConfig ...
@@ -57,7 +56,7 @@ func GetConfig(configPath string) (*Config, error) {
 func main() {
 	config, err := GetConfig(os.Args[1])
 	scanner, err := jobrunner.NewPolarisScanner(config.PolarisCLIPath, jobrunner.PolarisConfig{
-		PolarisURL: config.PolarisURL,
+		PolarisURL:   config.PolarisURL,
 		PolarisToken: config.PolarisToken,
 	})
 	if err != nil {
