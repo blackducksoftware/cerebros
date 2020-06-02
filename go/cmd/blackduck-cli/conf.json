@@ -1,0 +1,22 @@
+{
+  "Blackduck": {
+    "Host": "localhost",
+    "Username": "TODO",
+    "Password": "bdpw",
+    "Port": 443,
+    "OSType": "mac",
+    "ClientTimeoutSeconds": 300
+  },
+  "ImageFacade": {
+    "PrivateDockerRegistries": [],
+    "ImagePullerType": "docker",
+    "ImageDirectory": "/tmp/images",
+    "DeleteImageAfterScan": false
+  },
+  "ScanQueue": {
+    "Host": "localhost",
+    "Port": 4100
+  },
+  "Port": 4102,
+  "LogLevel": "debug"
+}

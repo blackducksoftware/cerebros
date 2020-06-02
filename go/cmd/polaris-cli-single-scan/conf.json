@@ -1,0 +1,11 @@
+{
+  "PolarisCLIPath": "/Users/mfenwick/Downloads/polaris_cli-macosx-1.5.5064/bin",
+
+  "FirstCapturePath": "/Users/mfenwick/gitprojects/unparse",
+  "CapturePath": "/Users/mfenwick/gitprojects/jquery",
+  "OldCapturePath": "/Users/mfenwick/gitprojects/unparse-js",
+  "OlderCapturePath": "/Users/mfenwick/gitprojects/JavaVulnerableLab",
+
+  "PolarisURL": "https://onprem-perf.dev.polaris.synopsys.com/",
+  "PolarisToken": "ifmodh3gsp27d50mjtq2fct8bku7vgbnqjbb5gprfrvssihqcv5g"
+}

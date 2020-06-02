@@ -1,0 +1,91 @@
+steps:
+
+  # scan queue
+
+- name: 'gcr.io/cloud-builders/go'
+  args: ['build', '-o', './go/cmd/scan-queue/scan-queue', './go/cmd/scan-queue/scan-queue.go']
+  env:
+  - 'PROJECT_ROOT=github.com/blackducksoftware/cerebros/go'
+  - 'CGO_ENABLED=0'
+  - 'GOOS=linux'
+  - 'GOARCH=amd64'
+  - 'GO111MODULE=on'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/blackducksoftware/cerebros/scan-queue:$BRANCH_NAME', './go/cmd/scan-queue/.']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/$PROJECT_ID/blackducksoftware/cerebros/scan-queue:$BRANCH_NAME']
+
+#  # polaris cli
+#
+#- name: 'gcr.io/cloud-builders/go'
+#  args: ['build', '-o', './go/cmd/polaris-cli/polaris-cli', './go/cmd/polaris-cli/polaris-cli.go']
+#  env:
+#    - 'PROJECT_ROOT=github.com/blackducksoftware/cerebros/go'
+#    - 'CGO_ENABLED=0'
+#    - 'GOOS=linux'
+#    - 'GOARCH=amd64'
+#    - 'GO111MODULE=on'
+#- name: 'gcr.io/cloud-builders/docker'
+#  args: ['build', '-t', 'gcr.io/$PROJECT_ID/blackducksoftware/cerebros/polaris-cli:$BRANCH_NAME', './go/cmd/polaris-cli/.']
+#- name: 'gcr.io/cloud-builders/docker'
+#  args: ['push', 'gcr.io/$PROJECT_ID/blackducksoftware/cerebros/polaris-cli:$BRANCH_NAME']
+#
+#  # blackduck-cli
+#
+#- name: 'gcr.io/cloud-builders/go'
+#  args: ['build', '-o', './go/cmd/blackduck-cli/blackduck-cli', './go/cmd/blackduck-cli/blackduck-cli.go']
+#  env:
+#    - 'PROJECT_ROOT=github.com/blackducksoftware/cerebros/go'
+#    - 'CGO_ENABLED=0'
+#    - 'GOOS=linux'
+#    - 'GOARCH=amd64'
+#    - 'GO111MODULE=on'
+#- name: 'gcr.io/cloud-builders/docker'
+#  args: ['build', '-t', 'gcr.io/$PROJECT_ID/blackducksoftware/cerebros/blackduck-cli:$BRANCH_NAME', './go/cmd/blackduck-cli/.']
+#- name: 'gcr.io/cloud-builders/docker'
+#  args: ['push', 'gcr.io/$PROJECT_ID/blackducksoftware/cerebros/blackduck-cli:$BRANCH_NAME']
+
+#  # get-docker-image
+#
+#- name: 'gcr.io/cloud-builders/go'
+#  args: ['build', '-o', './go/cmd/get-docker-image/get-docker-image', './go/cmd/get-docker-image/get-docker-image.go']
+#  env:
+#    - 'PROJECT_ROOT=github.com/blackducksoftware/cerebros/go'
+#    - 'CGO_ENABLED=0'
+#    - 'GOOS=linux'
+#    - 'GOARCH=amd64'
+#    - 'GO111MODULE=on'
+#- name: 'gcr.io/cloud-builders/docker'
+#  args: ['build', '-t', 'gcr.io/$PROJECT_ID/blackducksoftware/cerebros/get-docker-image:$BRANCH_NAME', './go/cmd/get-docker-image/.']
+#- name: 'gcr.io/cloud-builders/docker'
+#  args: ['push', 'gcr.io/$PROJECT_ID/blackducksoftware/cerebros/get-docker-image:$BRANCH_NAME']
+
+#  # polaris-api-load-gen
+#
+#- name: 'gcr.io/cloud-builders/go'
+#  args: ['build', '-o', './go/cmd/polaris-api-load-gen/polaris-api-load-gen', './go/cmd/polaris-api-load-gen/polaris-api-load-gen.go']
+#  env:
+#    - 'PROJECT_ROOT=github.com/blackducksoftware/cerebros/go'
+#    - 'CGO_ENABLED=0'
+#    - 'GOOS=linux'
+#    - 'GOARCH=amd64'
+#    - 'GO111MODULE=on'
+#- name: 'gcr.io/cloud-builders/docker'
+#  args: ['build', '-t', 'gcr.io/$PROJECT_ID/blackducksoftware/cerebros/polaris-api-load-gen:$BRANCH_NAME', './go/cmd/polaris-api-load-gen/.']
+#- name: 'gcr.io/cloud-builders/docker'
+#  args: ['push', 'gcr.io/$PROJECT_ID/blackducksoftware/cerebros/polaris-api-load-gen:$BRANCH_NAME']
+
+#  # kube-metrics
+#
+#- name: 'gcr.io/cloud-builders/go'
+#  args: ['build', '-o', './go/cmd/kube-metrics/kube-metrics', './go/cmd/kube-metrics/kube-metrics.go']
+#  env:
+#    - 'PROJECT_ROOT=github.com/blackducksoftware/cerebros/go'
+#    - 'CGO_ENABLED=0'
+#    - 'GOOS=linux'
+#    - 'GOARCH=amd64'
+#    - 'GO111MODULE=on'
+#- name: 'gcr.io/cloud-builders/docker'
+#  args: ['build', '-t', 'gcr.io/$PROJECT_ID/blackducksoftware/cerebros/kube-metrics:$BRANCH_NAME', './go/cmd/kube-metrics/.']
+#- name: 'gcr.io/cloud-builders/docker'
+#  args: ['push', 'gcr.io/$PROJECT_ID/blackducksoftware/cerebros/kube-metrics:$BRANCH_NAME']

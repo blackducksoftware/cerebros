@@ -1,0 +1,18 @@
+{
+  "Polaris": {
+    "CLIPath": "TODO",
+    "URL": "TODO",
+    "Email": "TODO",
+    "Password": "TODO",
+    "OSType": "mac"
+  },
+
+  "LogLevel": "debug",
+
+  "Port": 4101,
+
+  "ScanQueue": {
+    "Host": "localhost",
+    "Port": 4100
+  }
+}

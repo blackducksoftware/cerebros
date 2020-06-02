@@ -1,0 +1,15 @@
+{
+  "ImageRepository": "docker.io/alpine", 
+  "ImageTag": "alpine:latest", 
+  "HubProjectName": "docker.io/alpine", 
+  "HubProjectVersionName": "iscan", 
+  "ScanType": "docker",
+  "HubUsername": "sysadmin",
+  "LogLevel": "debug", 
+  "HubURL": "35.202.6.100",
+  "HubPassword": "blackduck",
+  "HubPort": 443, 
+  "HubScanName": "ab00606a42-docker",
+  "ImageDirectory": "/tmp/images", 
+  "ImageSha": "ab00606a42621fb68f2ed6ad3c88be54397f981a7b70a79db3d1172b11c4367d"
+}

@@ -1,0 +1,7 @@
+{
+  "Email": "TODO",
+  "Password": "TODO",
+  "URL": "https://onprem-perf.dev.polaris.synopsys.com",
+  "TokenName": "good-token",
+  "LogLevel": "debug"
+}

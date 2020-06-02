@@ -1,0 +1,34 @@
+{
+  "Blackduck": {
+    "Host": "TODO",
+    "Username": "TODO",
+    "Password": "bdpw",
+    "Port": 443,
+    "OSType": "Mac",
+    "ClientTimeoutSeconds": 300
+  },
+  "ImageFacade": {
+    "PrivateDockerRegistries": [],
+    "ImagePullerType": "docker",
+    "ImageDirectory": "/tmp/images",
+    "DeleteImageAfterScan": false
+  },
+  "Scan": {
+    "ScanType": {
+      "Blackduck": {
+        "IScan": true,
+        "Names": {
+          "ProjectName": "docker.io/alpine",
+          "VersionName": "iscan",
+          "ScanName": "ab00606a42-iscan"
+        }
+      }
+    },
+    "CodeLocation": {
+      "DockerImage": {
+        "PullSpec": "docker.io/alpine@sha256:ab00606a42621fb68f2ed6ad3c88be54397f981a7b70a79db3d1172b11c4367d"
+      }
+    }
+  },
+  "LogLevel": "debug"
+}

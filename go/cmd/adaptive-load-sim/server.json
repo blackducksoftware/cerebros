@@ -1,0 +1,11 @@
+{
+  "Port": 6789,
+
+  "Server": {
+    "AverageResponseTimeMs": 500,
+    "ResponseTimeRadiusMs": 400,
+    "Workers": 5
+  },
+
+  "LogLevel": "debug"
+}

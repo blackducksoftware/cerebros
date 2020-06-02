@@ -1,0 +1,167 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: scan-queue
+  name: scan-queue
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: scan-queue
+  template:
+    metadata:
+      labels:
+        component: scan-queue
+    spec:
+      volumes:
+        - name: scan-queue-config
+          configMap:
+            name: scan-queue-config
+      containers:
+        - image: gcr.io/eng-dev/blackducksoftware/cerebros/scan-queue:master
+          imagePullPolicy: Always
+          name: scan-queue
+          command:
+            - ./scan-queue
+          args:
+            - /etc/scan-queue/conf.json
+          volumeMounts:
+            - mountPath: /etc/scan-queue
+              name: scan-queue-config
+          ports:
+            - containerPort: 4100
+              protocol: TCP
+          resources:
+            requests:
+              memory: 1Gi
+              cpu: 100m
+            limits:
+              memory: 2Gi
+              cpu: 1000m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: scan-queue
+  name: scan-queue
+spec:
+  ports:
+    - port: 4100
+  selector:
+    component: scan-queue
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scan-queue-config
+data:
+  conf.json: |
+      {
+        "Port": 4100,
+        "LogLevel": "debug",
+
+        "Jobs": {
+          "react": {
+            "ScanType": {
+              "Polaris": true
+            },
+            "CodeLocation": {
+              "GitRepo": {
+                "Repo": "facebook/react"
+              }
+            }
+          },
+          "PearPlayer.js": {
+            "ScanType": {
+              "Polaris": true
+            },
+            "CodeLocation": {
+              "GitRepo": {
+                "Repo": "PearInc/PearPlayer.js"
+              }
+            }
+          },
+          "jquery": {
+            "ScanType": {
+              "Polaris": true
+            },
+            "CodeLocation": {
+              "GitRepo": {
+                "Repo": "jquery/jquery"
+              }
+            }
+          },
+          "multi-process-nodejs-example": {
+            "ScanType": {
+              "Polaris": true
+            },
+            "CodeLocation": {
+              "GitRepo": {
+                "Repo": "RisingStack/multi-process-nodejs-example"
+              }
+            }
+          },
+          "unparse-js": {
+            "ScanType": {
+              "Polaris": true
+            },
+            "CodeLocation": {
+              "GitRepo": {
+                "Repo": "mattfenwick/unparse-js"
+              }
+            }
+          },
+          "unparse": {
+            "ScanType": {
+              "Polaris": true
+            },
+            "CodeLocation": {
+              "GitRepo": {
+                "Repo": "mattfenwick/unparse"
+              }
+            }
+          },
+          "clojarse-server": {
+            "ScanType": {
+              "Polaris": true
+            },
+            "CodeLocation": {
+              "GitRepo": {
+                "Repo": "mattfenwick/clojarse-server"
+              }
+            }
+          },
+          "promises-js": {
+            "ScanType": {
+              "Polaris": true
+            },
+            "CodeLocation": {
+              "GitRepo": {
+                "Repo": "mattfenwick/promises-js"
+              }
+            }
+          },
+          "cc-js": {
+            "ScanType": {
+              "Polaris": true
+            },
+            "CodeLocation": {
+              "GitRepo": {
+                "Repo": "mattfenwick/cc-js"
+              }
+            }
+          },
+          "mongojs": {
+            "ScanType": {
+              "Polaris": true
+            },
+            "CodeLocation": {
+              "GitRepo": {
+                "Repo": "gett/mongojs"
+              }
+            }
+          }
+        }
+      }

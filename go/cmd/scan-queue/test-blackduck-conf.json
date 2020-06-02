@@ -1,0 +1,47 @@
+{
+  "Port": 4100,
+  "LogLevel": "debug",
+
+  "Jobs": {
+    "alpine-iscan": {
+      "Repository": "library/alpine",
+      "Sha": "ab00606a42621fb68f2ed6ad3c88be54397f981a7b70a79db3d1172b11c4367d",
+      "HubURL": "35.202.6.100",
+      "HubProjectName": "library/alpine",
+      "HubProjectVersionName": "iscan",
+      "HubScanName": "ab0060-iscan",
+      "ScanType": "iscan",
+      "ImageTag": "alpine:latest"
+    },
+    "alpine-binary": {
+      "Repository": "library/alpine",
+      "Sha": "ab00606a42621fb68f2ed6ad3c88be54397f981a7b70a79db3d1172b11c4367d",
+      "HubURL": "35.202.6.100",
+      "HubProjectName": "library/alpine",
+      "HubProjectVersionName": "binary",
+      "HubScanName": "ab0060-binary",
+      "ScanType": "binary",
+      "ImageTag": "alpine:latest"
+    },
+    "alpine-docker": {
+      "Repository": "library/alpine",
+      "Sha": "ab00606a42621fb68f2ed6ad3c88be54397f981a7b70a79db3d1172b11c4367d",
+      "HubURL": "35.202.6.100",
+      "HubProjectName": "library/alpine",
+      "HubProjectVersionName": "docker",
+      "HubScanName": "ab0060-docker",
+      "ScanType": "docker",
+      "ImageTag": "alpine:latest"
+    },
+    "alpine-signature": {
+      "Repository": "library/alpine",
+      "Sha": "ab00606a42621fb68f2ed6ad3c88be54397f981a7b70a79db3d1172b11c4367d",
+      "HubURL": "35.202.6.100",
+      "HubProjectName": "library/alpine",
+      "HubProjectVersionName": "signature",
+      "HubScanName": "ab0060-signature",
+      "ScanType": "signature",
+      "ImageTag": "alpine:latest"
+    }
+  }
+}

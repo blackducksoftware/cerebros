@@ -1,0 +1,10 @@
+{
+  "Port": 6543,
+
+  "Client": {
+    "ServerURL": "http://localhost:6789",
+    "Workers": 6
+  },
+
+  "LogLevel": "debug"
+}

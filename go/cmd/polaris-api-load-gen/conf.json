@@ -1,0 +1,20 @@
+{
+  "PolarisURL": "https://onprem-perf.dev.polaris.synopsys.com",
+  "PolarisEmail": "TODO",
+  "PolarisPassword": "TODO",
+  "LogLevel": "debug",
+  "Port": 3987,
+  "LoadGenerator": {
+    "WorkerRequests": {
+      "Groups": 2,
+      "Jobs": 4,
+      "Projects": 6,
+      "Taxonomies": 2,
+      "RoleAssignments": 2
+    }
+  },
+  "DataSeeder": {
+    "Concurrency": 10,
+    "UsersToCreate": 2000
+  }
+}

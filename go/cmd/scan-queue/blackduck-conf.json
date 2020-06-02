@@ -1,0 +1,75 @@
+{
+  "Port": 4100,
+  "LogLevel": "debug",
+
+  "Jobs": {
+    "alpine-iscan": {
+      "ScanType": {
+        "Blackduck": {
+          "IScan": true,
+          "Names": {
+            "ProjectName": "library/alpine",
+            "VersionName": "iscan",
+            "ScanName": "alpine-iscan"
+          }
+        }
+      },
+      "CodeLocation": {
+        "DockerImage": {
+          "PullSpec": "docker.io/alpine"
+        }
+      }
+    },
+    "alpine-binary": {
+      "ScanType": {
+        "Blackduck": {
+          "DetectBinaryScan": true,
+          "Names": {
+            "ProjectName": "library/alpine",
+            "VersionName": "binary",
+            "ScanName": "alpine-binary"
+          }
+        }
+      },
+      "CodeLocation": {
+        "DockerImage": {
+          "PullSpec": "library/alpine"
+        }
+      }
+    },
+    "alpine-signature": {
+      "ScanType": {
+        "Blackduck": {
+          "DetectSignatureScan": true,
+          "Names": {
+            "ProjectName": "library/alpine",
+            "VersionName": "signature",
+            "ScanName": "alpine-signature"
+          }
+        }
+      },
+      "CodeLocation": {
+        "DockerImage": {
+          "PullSpec": "library/alpine"
+        }
+      }
+    },
+    "alpine-docker": {
+      "ScanType": {
+        "Blackduck": {
+          "DetectDocker": {
+            "ImageTag": "libary/alpine:latest"
+          },
+          "Names": {
+            "ProjectName": "library/alpine",
+            "VersionName": "docker",
+            "ScanName": "alpine-docker"
+          }
+        }
+      },
+      "CodeLocation": {
+        "None": true
+      }
+    }
+  }
+}

@@ -1,0 +1,208 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: scan-queue
+  name: scan-queue
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: scan-queue
+  template:
+    metadata:
+      labels:
+        component: scan-queue
+    spec:
+      volumes:
+        - name: scan-queue-config
+          configMap:
+            name: scan-queue-config
+      containers:
+        - image: gcr.io/eng-dev/blackducksoftware/cerebros/scan-queue:master
+          imagePullPolicy: Always
+          name: scan-queue
+          command:
+            - ./scan-queue
+          args:
+            - /etc/scan-queue/conf.json
+          volumeMounts:
+            - mountPath: /etc/scan-queue
+              name: scan-queue-config
+          ports:
+            - containerPort: 4100
+              protocol: TCP
+          resources:
+            requests:
+              memory: 1Gi
+              cpu: 100m
+            limits:
+              memory: 2Gi
+              cpu: 1000m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: scan-queue
+  name: scan-queue
+spec:
+  ports:
+    - port: 4100
+  selector:
+    component: scan-queue
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scan-queue-config
+data:
+  conf.json: |
+      {
+        "Port": 4100,
+        "LogLevel": "debug",
+
+        "Jobs": {
+          "freeCodeCamp": {
+            "Repo": "freeCodeCamp/freeCodeCamp"
+          },
+          "vue": {
+            "Repo": "vuejs/vue"
+          },
+          "bootstrap": {
+            "Repo": "twitter/bootstrap"
+          },
+          "react": {
+            "Repo": "facebook/react"
+          },
+          "You-Dont-Know-JS": {
+            "Repo": "getify/You-Dont-Know-JS"
+          },
+          "javascript": {
+            "Repo": "airbnb/javascript"
+          },
+          "d3": {
+            "Repo": "mbostock/d3"
+          },
+          "react-native": {
+            "Repo": "facebook/react-native"
+          },
+          "create-react-app": {
+            "Repo": "facebook/create-react-app"
+          },
+          "node": {
+            "Repo": "nodejs/node"
+          },
+          "axios": {
+            "Repo": "axios/axios"
+          },
+          "Font-Awesome": {
+            "Repo": "FortAwesome/Font-Awesome"
+          },
+          "angular.js": {
+            "Repo": "angular/angular.js"
+          },
+          "three.js": {
+            "Repo": "mrdoob/three.js"
+          },
+          "free-programming-books-zh_CN": {
+            "Repo": "justjavac/free-programming-books-zh_CN"
+          },
+          "jquery": {
+            "Repo": "jquery/jquery"
+          },
+          "puppeteer": {
+            "Repo": "GoogleChrome/puppeteer"
+          },
+          "javascript-algorithms": {
+            "Repo": "trekhleb/javascript-algorithms"
+          },
+          "webpack": {
+            "Repo": "webpack/webpack"
+          },
+          "redux": {
+            "Repo": "gaearon/redux"
+          },
+          "atom": {
+            "Repo": "atom/atom"
+          },
+          "material-ui": {
+            "Repo": "mui-org/material-ui"
+          },
+          "reveal.js": {
+            "Repo": "hakimel/reveal.js"
+          },
+          "socket.io": {
+            "Repo": "socketio/socket.io"
+          },
+          "30-seconds-of-code": {
+            "Repo": "30-seconds/30-seconds-of-code"
+          },
+          "Semantic-UI": {
+            "Repo": "Semantic-Org/Semantic-UI"
+          },
+          "express": {
+            "Repo": "expressjs/express"
+          },
+          "Chart.js": {
+            "Repo": "chartjs/Chart.js"
+          },
+          "html5-boilerplate": {
+            "Repo": "h5bp/html5-boilerplate"
+          },
+          "moment": {
+            "Repo": "moment/moment"
+          },
+          "json-server": {
+            "Repo": "typicode/json-server"
+          },
+          "resume.github.com": {
+            "Repo": "resume/resume.github.com"
+          },
+          "meteor": {
+            "Repo": "meteor/meteor"
+          },
+          "lodash": {
+            "Repo": "lodash/lodash"
+          },
+          "markdown-here": {
+            "Repo": "adam-p/markdown-here"
+          },
+          "next.js": {
+            "Repo": "zeit/next.js"
+          },
+          "storybook": {
+            "Repo": "storybooks/storybook"
+          },
+          "react-router": {
+            "Repo": "ReactTraining/react-router"
+          },
+          "gatsby": {
+            "Repo": "gatsbyjs/gatsby"
+          },
+          "yarn": {
+            "Repo": "yarnpkg/yarn"
+          },
+          "materialize": {
+            "Repo": "Dogfalo/materialize"
+          },
+          "hacker-scripts": {
+            "Repo": "NARKOZ/hacker-scripts"
+          },
+          "incubator-echarts": {
+            "Repo": "apache/incubator-echarts"
+          },
+          "Front-End-Checklist": {
+            "Repo": "thedaviddias/Front-End-Checklist"
+          },
+          "impress.js": {
+            "Repo": "impress/impress.js"
+          },
+          "babel": {
+            "Repo": "babel/babel"
+          },
+          "awesome-selfhosted": {
+            "Repo": "Kickball/awesome-selfhosted"
+          }
+        }
+      }

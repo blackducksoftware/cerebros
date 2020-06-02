@@ -1,0 +1,10 @@
+{
+  "PolarisURL": "https://onprem-perf.dev.polaris.synopsys.com",
+  "PolarisEmail": "",
+  "PolarisPassword": "",
+  "DownloadDir": "",
+  "OSType": "mac",
+  "TokenName": "my-polaris-token",
+  "CapturePath": "",
+  "LogLevel": "trace"
+}

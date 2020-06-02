@@ -1,0 +1,57 @@
+{
+  "Port": 4100,
+  "LogLevel": "debug",
+
+  "Jobs": {
+    "react": {
+      "ScanType": {
+        "Polaris": true
+      },
+      "CodeLocation": {
+        "GitRepo": {
+          "Repo": "facebook/react"
+        }
+      }
+    },
+    "PearPlayer.js": {
+      "ScanType": {
+        "Polaris": true
+      },
+      "CodeLocation": {
+        "GitRepo": {
+          "Repo": "PearInc/PearPlayer.js"
+        }
+      }
+    },
+    "jquery": {
+      "ScanType": {
+        "Polaris": true
+      },
+      "CodeLocation": {
+        "GitRepo": {
+          "Repo": "jquery/jquery"
+        }
+      }
+    },
+    "multi-process-nodejs-example": {
+      "ScanType": {
+        "Polaris": true
+      },
+      "CodeLocation": {
+        "GitRepo": {
+          "Repo": "RisingStack/multi-process-nodejs-example"
+        }
+      }
+    },
+    "mongojs": {
+      "ScanType": {
+        "Polaris": true
+      },
+      "CodeLocation": {
+        "GitRepo": {
+          "Repo": "gett/mongojs"
+        }
+      }
+    }
+  }
+}

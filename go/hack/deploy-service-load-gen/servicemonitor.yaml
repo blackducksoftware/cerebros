@@ -1,0 +1,14 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: service-load-gen-service-monitor
+  namespace: monitoring
+spec:
+  endpoints:
+  - honorLabels: true
+    port: port-9876
+  namespaceSelector:
+    any: true
+  selector:
+    matchLabels:
+      component: service-load-gen

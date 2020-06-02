@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: polaris-api-load-gen
+  name: polaris-api-load-gen
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: polaris-api-load-gen
+  template:
+    metadata:
+      labels:
+        component: polaris-api-load-gen
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "3987"
+    spec:
+      volumes:
+        - name: polaris-api-load-gen-config
+          configMap:
+            name: polaris-api-load-gen-config
+      hostAliases:
+        - ip: "$POLARIS_IP"
+          hostnames:
+            - "$POLARIS_HOST"
+      containers:
+        - image: gcr.io/eng-dev/blackducksoftware/cerebros/polaris-api-load-gen:master
+          imagePullPolicy: Always
+          name: polaris-api-load-gen
+          command:
+            - ./polaris-api-load-gen
+          args:
+            - /etc/polaris-api-load-gen/conf.json
+          volumeMounts:
+            - mountPath: /etc/polaris-api-load-gen
+              name: polaris-api-load-gen-config
+          ports:
+            - containerPort: 3987
+              protocol: TCP
+          resources:
+            requests:
+              memory: 1Gi
+              cpu: 100m
+            limits:
+              memory: 2Gi
+              cpu: 1000m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: polaris-api-load-gen
+  name: polaris-api-load-gen
+spec:
+  ports:
+    - port: 3987
+  selector:
+    component: polaris-api-load-gen
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: polaris-api-load-gen-config
+data:
+  conf.json: |
+    {
+      "PolarisURL":      "https://$POLARIS_HOST",
+      "PolarisEmail":    "$POLARIS_EMAIL",
+      "PolarisPassword": "$POLARIS_PASSWORD",
+      "LogLevel": "debug",
+      "Port": 3987,
+      "LoadGenerator": {
+        "WorkerRequests": {
+          "Groups": 4,
+          "Jobs": 10,
+          "Projects": 6,
+          "Taxonomies": 4,
+          "RoleAssignments": 4
+        }
+      },
+      "DataSeeder": {
+        "UsersToCreate": 20000,
+        "Concurrency": 10
+      }
+    }

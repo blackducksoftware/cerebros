@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: polaris-cli
+  name: polaris-cli
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: polaris-cli
+  template:
+    metadata:
+      labels:
+        component: polaris-cli
+    spec:
+      volumes:
+        - name: polaris-cli-config
+          configMap:
+            name: polaris-cli-config
+      hostAliases:
+        - ip: "$POLARIS_IP"
+          hostnames:
+            - "onprem-perf.dev.polaris.synopsys.com"
+      containers:
+        - image: gcr.io/eng-dev/blackducksoftware/cerebros/polaris-cli:master
+          imagePullPolicy: Always
+          name: polaris-cli
+          command:
+            - ./polaris-cli
+          args:
+            - /etc/polaris-cli/conf.json
+          volumeMounts:
+            - mountPath: /etc/polaris-cli
+              name: polaris-cli-config
+          ports:
+            - containerPort: 4101
+              protocol: TCP
+          resources:
+            requests:
+              memory: 1Gi
+              cpu: 2000m
+            limits:
+              memory: 2Gi
+              cpu: 2000m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: polaris-cli
+  name: polaris-cli
+spec:
+  ports:
+    - port: 4101
+  selector:
+    component: polaris-cli
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: polaris-cli-config
+data:
+  conf.json: |
+    {
+      "Polaris": {
+        "CLIPath": "/usr/local/bin",
+        "URL": "https://onprem-perf.dev.polaris.synopsys.com/",
+        "Email": "$POLARIS_EMAIL",
+        "Password": "$POLARIS_PASSWORD",
+        "OSType": "linux"
+      },
+
+      "LogLevel": "debug",
+
+      "Port": 4101,
+
+      "ScanQueue": {
+        "Host": "scan-queue",
+        "Port": 4100
+      }
+    }

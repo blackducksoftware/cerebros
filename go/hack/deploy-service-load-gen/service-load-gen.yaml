@@ -1,0 +1,176 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: service-load-gen
+  name: service-load-gen
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: service-load-gen
+  template:
+    metadata:
+      labels:
+        component: service-load-gen
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "9876"
+    spec:
+      volumes:
+        - name: service-load-gen-config
+          configMap:
+            name: service-load-gen-config
+#      hostAliases:
+#        - ip: "$POLARIS_IP"
+#          hostnames:
+#            - "onprem-perf.dev.polaris.synopsys.com"
+      containers:
+        - image: gcr.io/eng-dev/blackducksoftware/cerebros/service-load-gen:master
+          imagePullPolicy: Always
+          name: service-load-gen
+          command:
+            - ./service-load-gen
+          args:
+            - /etc/service-load-gen/conf.json
+          volumeMounts:
+            - mountPath: /etc/service-load-gen
+              name: service-load-gen-config
+          ports:
+            - containerPort: 9876
+              protocol: TCP
+          resources:
+            requests:
+              memory: 2Gi
+              cpu: 1000m
+            limits:
+              memory: 2Gi
+              cpu: 1000m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: service-load-gen
+  name: service-load-gen
+spec:
+  ports:
+    - port: 9876
+      name: port-9876
+  selector:
+    component: service-load-gen
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: service-load-gen-config
+data:
+  conf.json: |
+    {
+      "PolarisURL": "$POLARIS_URL",
+      "PolarisEmail": "$POLARIS_EMAIL",
+      "PolarisPassword": "$POLARIS_PASSWORD",
+
+      "LogLevel": "fatal",
+      "Port": 9876,
+
+      "LoadGenerator": {
+        "Issue": {
+          "FetchProjectsCount": 1000,
+          "Issues": {
+            "WorkersCount": 2,
+            "Rate": {
+              "RateChangePeriodSeconds": 100000,
+              "Constant": {
+                "Baseline": 2
+              }
+            }
+          },
+          "RollupCounts": {
+            "LoadConfig": {
+              "WorkersCount": 2,
+              "Rate": {
+                "RateChangePeriodSeconds": 100000,
+                "Constant": {
+                  "Baseline": 2
+                }
+              }
+            },
+            "PageSize": 100
+          }
+        },
+        "Auth": {
+          "Entitlements": {
+            "WorkersCount": 2,
+            "Rate": {
+              "RateChangePeriodSeconds": 100000,
+              "Constant": {
+                "Baseline": 20
+              }
+            }
+          },
+          "Login": {
+            "WorkersCount": 2,
+            "Rate": {
+              "RateChangePeriodSeconds": 10,
+              "Spike": {
+                "Baseline": 5,
+                "LowPeriodSeconds": 480,
+                "Height": 10,
+                "HighPeriodSeconds": 60,
+                "RampSeconds": 30
+              }
+            }
+          },
+          "RoleAssignmentsPager": {
+            "pagesize-10": {
+              "LoadConfig": {
+                "WorkersCount": 2,
+                "Rate": {
+                  "RateChangePeriodSeconds": 100000,
+                  "Constant": {
+                    "Baseline": 1
+                  }
+                }
+              },
+              "PageSize": 10
+            },
+            "pagesize-1000": {
+              "LoadConfig": {
+                "WorkersCount": 20,
+                "Rate": {
+                  "RateChangePeriodSeconds": 100000,
+                  "Constant": {
+                    "Baseline": 1
+                  }
+                }
+              },
+              "PageSize": 1000
+            }
+          },
+          "RoleAssignmentsSingleProject": {
+            "WorkersCount": 5,
+            "Rate": {
+              "RateChangePeriodSeconds": 10,
+              "Spike": {
+                "Baseline": 1.00,
+                "LowPeriodSeconds": 3000,
+                "Height": 10,
+                "HighPeriodSeconds": 480,
+                "RampSeconds": 60
+              }
+            }
+          },
+          "CreateRoleAssignments": {
+            "WorkersCount": 5,
+            "Rate": {
+              "RateChangePeriodSeconds": 100000,
+              "Constant": {
+                "Baseline": 2
+              }
+            }
+          }
+        }
+      }
+    }

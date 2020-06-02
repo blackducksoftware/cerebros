@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: kube-metrics
+  name: kube-metrics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: kube-metrics
+  template:
+    metadata:
+      labels:
+        component: kube-metrics
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "5622"
+    spec:
+      serviceAccount: $SA_NAME
+      serviceAccountName: $SA_NAME
+      volumes:
+        - name: kube-metrics-config
+          configMap:
+            name: kube-metrics-config
+      containers:
+        - image: gcr.io/eng-dev/blackducksoftware/cerebros/kube-metrics:master
+          imagePullPolicy: Always
+          name: kube-metrics
+          command:
+            - ./kube-metrics
+          args:
+            - /etc/kube-metrics/conf.json
+          volumeMounts:
+            - mountPath: /etc/kube-metrics
+              name: kube-metrics-config
+          ports:
+            - containerPort: 5622
+              protocol: TCP
+          resources:
+            requests:
+              memory: 1Gi
+              cpu: 100m
+            limits:
+              memory: 2Gi
+              cpu: 1000m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: kube-metrics
+  name: kube-metrics
+spec:
+  ports:
+    - port: 5622
+  selector:
+    component: kube-metrics
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kube-metrics-config
+data:
+  conf.json: |
+    {
+      "LogLevel": "debug",
+      "Namespace": "$COLLECTION_NAMESPACE",
+      "Port": 5622
+    }

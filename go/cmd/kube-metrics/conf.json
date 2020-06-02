@@ -1,0 +1,6 @@
+{
+  "KubeConfigPath": "",
+  "LogLevel": "debug",
+  "Namespace": "bd",
+  "Port": 8978
+}

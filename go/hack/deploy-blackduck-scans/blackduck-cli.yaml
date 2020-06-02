@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: blackduck-cli
+  name: blackduck-cli
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: blackduck-cli
+  template:
+    metadata:
+      labels:
+        component: blackduck-cli
+    spec:
+      volumes:
+        - name: blackduck-cli-config
+          configMap:
+            name: blackduck-cli-config
+        - name: dir-docker-socket
+          hostPath:
+            path: /var/run/docker.sock
+      containers:
+        - image: gcr.io/eng-dev/blackducksoftware/cerebros/blackduck-cli:master
+          imagePullPolicy: Always
+          name: blackduck-cli
+          command:
+            - ./blackduck-cli
+          args:
+            - /etc/blackduck-cli/conf.json
+          volumeMounts:
+            - mountPath: /etc/blackduck-cli
+              name: blackduck-cli-config
+            - mountPath: /var/run/docker.sock
+              name: dir-docker-socket
+          ports:
+            - containerPort: 4102
+              protocol: TCP
+          resources:
+            requests:
+              memory: 1Gi
+              cpu: 100m
+            limits:
+              memory: 2Gi
+              cpu: 1000m
+          securityContext:
+            privileged: true
+#      serviceAccountName: blackduck-cli-sa
+#      serviceAccount: blackduck-cli-sa
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: blackduck-cli
+  name: blackduck-cli
+spec:
+  ports:
+    - port: 4102
+  selector:
+    component: blackduck-cli
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blackduck-cli-config
+data:
+  conf.json: |
+    {
+      "Blackduck": {
+        "Host": "$BD_HOST",
+        "Username": "$BD_USER",
+        "Password": "$BD_PASSWORD",
+        "Port": 443,
+        "OSType": "linux",
+        "ClientTimeoutSeconds": 300
+      },
+      "ImageFacade": {
+        "ImageDirectory": "/var/images",
+        "PrivateDockerRegistries": [],
+        "ImagePullerType": "docker"
+      },
+      "ScanQueue": {
+        "Host": "scan-queue",
+        "Port": 4100
+      },
+
+      "Port": 4102,
+      "LogLevel": "debug"
+    }

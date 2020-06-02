@@ -1,0 +1,22 @@
+{
+  "Hub": {
+    "User": "sysadmin",
+    "Password": "blackduck",
+    "Port": 443
+  },
+  "ImageFacade": {
+    "PrivateDockerRegistries": [],
+    "ImagePullerType": "skopeo"
+  },
+  "ScanQueue": {
+    "Host": "localhost",
+    "Port": 8900
+  },
+  "Scanner": {
+    "ImageDirectory": "/tmp/images",
+    "Port": 4102,
+    "HubClientTimeoutSeconds": 300
+  },
+
+  "LogLevel": "debug"
+}

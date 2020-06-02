@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: get-docker-image
+  name: get-docker-image
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: get-docker-image
+  template:
+    metadata:
+      labels:
+        component: get-docker-image
+    spec:
+      volumes:
+        - name: get-docker-image-config
+          configMap:
+            name: get-docker-image-config
+        - name: dir-docker-socket
+          hostPath:
+            path: /var/run/docker.sock
+      containers:
+        - image: gcr.io/eng-dev/blackducksoftware/cerebros/get-docker-image:master
+          imagePullPolicy: Always
+          name: get-docker-image
+          command:
+            - ./get-docker-image
+          args:
+            - /etc/get-docker-image/conf.json
+          volumeMounts:
+            - mountPath: /etc/get-docker-image
+              name: get-docker-image-config
+            - mountPath: /var/run/docker.sock
+              name: dir-docker-socket
+          ports:
+            - containerPort: 4103
+              protocol: TCP
+          resources:
+            requests:
+              memory: 1Gi
+              cpu: 100m
+            limits:
+              memory: 2Gi
+              cpu: 1000m
+          securityContext:
+            privileged: true
+#      serviceAccountName: my-new-sa
+#      serviceAccount: my-new-sa
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    component: get-docker-image
+  name: get-docker-image
+spec:
+  ports:
+    - port: 4103
+  selector:
+    component: get-docker-image
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: get-docker-image-config
+data:
+  conf.json: |
+    {
+      "Image": "gcr.io/eng-dev/blackducksoftware/cerebros/blackduck-cli@sha256:460440b29d590427d5d81404eab1f12ca3f8192452f4cf03bc148a894e5e3421",
+      "PostPullWaitSeconds": 5000
+    }
+#---
+#apiVersion: v1
+#kind: ServiceAccount
+#metadata:
+#  name: my-new-sa
+#---
+#apiVersion: rbac.authorization.k8s.io/v1
+#kind: ClusterRoleBinding
+#metadata:
+#  name: get-docker-image-crb
+#roleRef:
+#  apiGroup: rbac.authorization.k8s.io
+#  kind: ClusterRole
+#  name: admin
+#subjects:
+#  - kind: ServiceAccount
+#    name: get-docker-image
