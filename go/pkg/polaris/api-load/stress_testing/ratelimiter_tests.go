@@ -122,23 +122,23 @@ func RunRateLimiterTests() {
 
 		It("RateLimiter on Const", func() {
 			limit := 50
-			rl := NewRateLimiter("test-const", Const(float64(limit)), 5*time.Second)
+			rl := NewRateLimiter("test-const", Const(float64(limit)), 5*time.Second, nil)
 
 			start := time.Now()
 			for i := 0; i < limit-1; i++ {
-				Expect(rl.Wait()).To(Succeed())
+				rl.Wait()
 			}
 			Expect(time.Since(start)).To(BeNumerically("<", 1*time.Second))
 
 			start2 := time.Now()
 			for j := 0; j < 3*limit; j++ {
-				Expect(rl.Wait()).To(Succeed())
+				rl.Wait()
 			}
 			Expect(time.Since(start2)).To(BeNumerically(">", 2500*time.Millisecond))
 		})
 
 		It("RateLimiter on linear increase -- this is a pretty fragile test", func() {
-			rl := NewRateLimiter("test-linear", Linear(1), 100*time.Millisecond)
+			rl := NewRateLimiter("test-linear", Linear(1), 100*time.Millisecond, nil)
 
 			for i := 1; i <= 10; i++ {
 				time.Sleep(110 * time.Millisecond)

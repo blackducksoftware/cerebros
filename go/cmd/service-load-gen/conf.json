@@ -33,11 +33,19 @@
     },
     "Auth": {
       "Entitlements": {
-        "WorkersCount": 2,
+        "WorkersCount": 20,
         "Rate": {
-          "RateChangePeriodSeconds": 100000,
+          "RateChangePeriodSeconds": 10,
           "Constant": {
             "Baseline": 0.5
+          },
+          "AdaptiveRateAdjuster": {
+            "IncreaseRatio": 1.1,
+            "IncreaseMaxErrorFraction": 0.05,
+            "DecreaseRatio": 0.75,
+            "DecreaseMinErrorFraction": 0.05,
+            "MaxRate": 20,
+            "MinRate": 0.5
           }
         }
       },
