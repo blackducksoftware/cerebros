@@ -149,4 +149,26 @@ func RunRateLimiterTests() {
 			}
 		})
 	})
+
+	Describe("AdaptiveRateAdjuster", func() {
+		f := (&ErrorFractionThresholdConfig{
+			IncreaseRatio:            1.1,
+			IncreaseMaxErrorFraction: 0.05,
+			DecreaseRatio:            0.5,
+			DecreaseMinErrorFraction: 0.1,
+			MaxRate:                  10,
+			MinRate:                  0.5,
+		}).RateAdjuster()
+
+		It("should increase, stay the same, and decrease depending on error rate", func() {
+			Expect(f(1, .9, 0)).To(BeNumerically("~", 1.1, 0.01))
+			Expect(f(1, .9, 0.06)).To(BeNumerically("~", 1, 0.01))
+			Expect(f(1, .9, 0.11)).To(BeNumerically("~", 0.5, 0.01))
+		})
+
+		It("should raise rates even when below the min", func() {
+			Expect(f(0.25, .24, 0)).To(BeNumerically("~", 0.275, 0.01))
+			Expect(f(0.275, .27, 0)).To(BeNumerically("~", 0.3025, 0.01))
+		})
+	})
 }

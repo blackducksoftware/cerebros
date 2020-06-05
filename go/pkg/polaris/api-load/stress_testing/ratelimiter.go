@@ -11,7 +11,11 @@ import (
 	"time"
 )
 
-type AdaptiveRateAdjuster func(float64, float64) float64
+const (
+	rateCounterPeriod = 1 * time.Minute
+)
+
+type AdaptiveRateAdjuster func(currentLimit float64, currentRate float64, currentErrorFraction float64) float64
 
 type ErrorFractionThresholdConfig struct {
 	IncreaseRatio            float64
@@ -23,14 +27,20 @@ type ErrorFractionThresholdConfig struct {
 }
 
 func (conf *ErrorFractionThresholdConfig) RateAdjuster() AdaptiveRateAdjuster {
-	return func(currentRate float64, errorFraction float64) float64 {
+	if conf.IncreaseMaxErrorFraction < 0 || conf.IncreaseMaxErrorFraction > 1 {
+
+	}
+	return func(currentLimit float64, currentRate float64, errorFraction float64) float64 {
 		if errorFraction > conf.DecreaseMinErrorFraction {
-			return math.Max(conf.MinRate, conf.DecreaseRatio*currentRate)
+			// it's okay to keep decreasing the limit, even if the rate is far below the limit --
+			// as long as the rate doesn't go below the min
+			return math.Max(conf.MinRate, conf.DecreaseRatio*currentLimit)
 		}
-		if errorFraction < conf.IncreaseMaxErrorFraction {
-			return math.Min(conf.MaxRate, conf.IncreaseRatio*currentRate)
+		// OTOH, don't keep increasing the limit if the rate is less than 80% of the limit
+		if (errorFraction < conf.IncreaseMaxErrorFraction) && (currentRate > (currentLimit * 0.8)) {
+			return math.Min(conf.MaxRate, conf.IncreaseRatio*currentLimit)
 		}
-		return currentRate
+		return currentLimit
 	}
 }
 
@@ -147,9 +157,9 @@ func NewRateLimiter(name string, getRate BaseRateSetter, rateChangePeriod time.D
 		rateLimiter:       rate.NewLimiter(rate.Limit(0), 1),
 		stop:              make(chan struct{}),
 		rateChangePeriod:  rateChangePeriod,
-		startRateCounter:  ratecounter.NewRateCounter(1 * time.Minute),
-		finishRateCounter: ratecounter.NewRateCounter(1 * time.Minute),
-		errorCounter:      ratecounter.NewRateCounter(1 * time.Minute),
+		startRateCounter:  ratecounter.NewRateCounter(rateCounterPeriod),
+		finishRateCounter: ratecounter.NewRateCounter(rateCounterPeriod),
+		errorCounter:      ratecounter.NewRateCounter(rateCounterPeriod),
 		successCount:      0,
 		errorCount:        0,
 		jobsInProgress:    0,
@@ -231,7 +241,10 @@ func (rl *RateLimiter) setLimitForTime(t int) {
 	newLimit := baseLimit
 	var adaptiveAdjustment = float64(1)
 	if rl.errorAdjuster != nil {
-		adaptiveAdjustment = rl.errorAdjuster(baseLimit, rl.errorFraction())
+		adaptiveAdjustment = rl.errorAdjuster(
+			baseLimit,
+			float64(rl.finishRateCounter.Rate())/rateCounterPeriod.Seconds(),
+			rl.errorFraction())
 	}
 
 	newLimit *= adaptiveAdjustment
