@@ -69,11 +69,11 @@ func (lm *LoadManager) recordMetrics() {
 		case <-lm.stopChan:
 			return
 		case <-time.After(20 * time.Second):
-			recordErrorFraction(lm.Name, lm.errorFraction())
+			recordNamedEventGauge("errorFraction", lm.Name, lm.errorFraction())
 			lm.mux.Lock()
-			recordJobsInProgress(lm.Name, lm.jobsInProgress)
-			recordErrorCount(lm.Name, lm.errorCount)
-			recordSuccessCount(lm.Name, lm.successCount)
+			recordNamedEventGauge("jobsInProgress", lm.Name, float64(lm.jobsInProgress))
+			recordNamedEventBy("errorCount", lm.Name, lm.errorCount)
+			recordNamedEventBy("successCount", lm.Name, lm.successCount)
 			lm.mux.Unlock()
 		}
 	}

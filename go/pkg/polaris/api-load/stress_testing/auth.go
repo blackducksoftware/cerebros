@@ -246,7 +246,6 @@ func (raps *RoleAssignmentsSingleProjectSource) getNextIndex() (int, bool) {
 	}
 	log.Debugf("rollupCounts index %d", raps.Index)
 	i := raps.Index
-	recordProjectRollupCountsIndex(i)
 	raps.Index++
 	return i, true
 }
@@ -257,7 +256,7 @@ func (raps *RoleAssignmentsSingleProjectSource) RunJob() (string, error) {
 		return "getRoleAssignmentsSingleProject -- no project available", errors.New(fmt.Sprintf("no project available"))
 	}
 	project := raps.projects.GetProject(index)
-	recordRoleAssignmentsSingleProjectIndex(index)
+	recordEventGauge("roleAssignmentsProjectIndex", index)
 	_, err := raps.client.GetRoleAssignmentsForProject(project.Id)
 	return "getRoleAssignmentsSingleProject", err
 }

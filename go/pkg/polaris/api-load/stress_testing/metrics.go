@@ -27,12 +27,17 @@ import (
 )
 
 var eventCounter *prometheus.CounterVec
+var namedEventCounter *prometheus.CounterVec
 var eventGauge *prometheus.GaugeVec
 var namedEventGauge *prometheus.GaugeVec
 var eventHistogram *prometheus.HistogramVec
 
 func recordEvent(eventType string, err error) {
 	eventCounter.With(prometheus.Labels{"type": eventType, "iserror": fmt.Sprintf("%t", err != nil)}).Inc()
+}
+
+func recordNamedEventBy(eventType string, name string, count int) {
+	namedEventCounter.With(prometheus.Labels{"type": eventType, "name": name}).Add(float64(count))
 }
 
 func recordEventGauge(eventType string, value int) {
@@ -48,47 +53,6 @@ func recordDuration(typeName string, duration time.Duration) {
 	eventHistogram.With(prometheus.Labels{"type": typeName}).Observe(milliseconds)
 }
 
-// TODO
-//func recordRate(rate int) {
-//	eventGauge.With(prometheus.Labels{"type": "rateLimit"}).Set(float64(rate))
-//}
-
-func recordIssuePageJobProjectIndex(i int) {
-	eventGauge.With(prometheus.Labels{"type": "issuePageJobProjectIndex"}).Set(float64(i))
-}
-
-func recordJobsInProgress(name string, count int) {
-	namedEventGauge.With(prometheus.Labels{"type": "jobsInProgress", "name": name}).Set(float64(count))
-}
-
-func recordErrorCount(name string, count int) {
-	namedEventGauge.With(prometheus.Labels{"type": "errorCount", "name": name}).Set(float64(count))
-}
-
-func recordSuccessCount(name string, count int) {
-	namedEventGauge.With(prometheus.Labels{"type": "successCount", "name": name}).Set(float64(count))
-}
-
-func recordRoleAssignmentsSingleProjectIndex(index int) {
-	eventGauge.With(prometheus.Labels{"type": "roleAssignmentsProjectIndex"}).Set(float64(index))
-}
-
-func recordProjectPage(page int) {
-	eventGauge.With(prometheus.Labels{"type": "projectPage"}).Set(float64(page))
-}
-
-func recordErrorFraction(name string, fraction float64) {
-	namedEventGauge.With(prometheus.Labels{"type": "errorFraction", "name": name}).Set(fraction)
-}
-
-//func recordProjectIssuesCount(count int) {
-//	projectIssueCounter.With(prometheus.Labels{"count": fmt.Sprintf("%d", count)}).Inc()
-//}
-
-func recordProjectRollupCountsIndex(i int) {
-	eventGauge.With(prometheus.Labels{"type": "projectRollupCountsIndex"}).Set(float64(i))
-}
-
 func init() {
 	eventCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "cerebros",
@@ -97,6 +61,14 @@ func init() {
 		Help:      "a count of events",
 	}, []string{"type", "iserror"})
 	prometheus.MustRegister(eventCounter)
+
+	namedEventCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "cerebros",
+		Subsystem: "polaris_api_load_issue_server",
+		Name:      "named_event_counter",
+		Help:      "a count of named events",
+	}, []string{"type", "name"})
+	prometheus.MustRegister(namedEventCounter)
 
 	eventGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "cerebros",

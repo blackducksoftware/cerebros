@@ -46,7 +46,7 @@ func (client *Client) Authenticate() error {
 	resp, err := request.Post(url)
 	duration := time.Now().Sub(start)
 
-	recordEvent("post_"+path, err)
+	recordEvent("POST_"+path, err)
 
 	if err != nil {
 		return errors.Wrapf(err, "unable to POST to %s", url)

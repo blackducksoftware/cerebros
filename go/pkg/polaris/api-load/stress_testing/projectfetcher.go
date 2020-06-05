@@ -107,7 +107,7 @@ func (pf *ProjectFetcher) Start() {
 				break ForLoop
 			default:
 			}
-			recordProjectPage(page)
+			recordEventGauge("projectPage", page)
 			offset := page * pageSize
 			log.Infof("projects worker %d: getting projects with offset %d, pagesize %d", workerId, offset, pageSize)
 			vinyl, err := pf.client.GetVinylV0Projects(offset, pageSize)

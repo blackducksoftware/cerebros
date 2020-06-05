@@ -60,7 +60,7 @@ func (rcs *RollupCountsSource) getNextIndex() (int, bool) {
 	}
 	log.Debugf("rollupCounts index %d", rcs.Index)
 	i := rcs.Index
-	recordProjectRollupCountsIndex(i)
+	recordEventGauge("projectRollupCountsIndex", i)
 	rcs.Index++
 	return i, true
 }
@@ -128,7 +128,7 @@ func (is *IssuesSource) getIssuePageJob() *issuePageJob {
 	if is.Index >= projectCount {
 		is.Index = 0
 	}
-	recordIssuePageJobProjectIndex(is.Index)
+	recordEventGauge("issuePageJobProjectIndex", is.Index)
 	project := is.Projects.GetMainBranchProject(is.Index)
 	is.Index++
 	return &issuePageJob{
