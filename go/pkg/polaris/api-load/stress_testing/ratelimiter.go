@@ -37,7 +37,7 @@ func (conf *ErrorFractionThresholdConfig) RateAdjuster() AdaptiveRateAdjuster {
 			return math.Max(conf.MinRate, conf.DecreaseRatio*currentLimit)
 		}
 		// OTOH, don't keep increasing the limit if the rate is less than 80% of the limit
-		if (errorFraction < conf.IncreaseMaxErrorFraction) && (currentRate > (currentLimit * 0.8)) {
+		if (errorFraction < conf.IncreaseMaxErrorFraction) && (currentRate >= (currentLimit * 0.8)) {
 			return math.Min(conf.MaxRate, conf.IncreaseRatio*currentLimit)
 		}
 		return currentLimit
@@ -228,6 +228,9 @@ func (rl *RateLimiter) recordMetrics() {
 			recordNamedEventGauge("errorFraction", rl.Name, rl.errorFraction())
 			rl.mux.Lock()
 			recordNamedEventGauge("jobsInProgress", rl.Name, float64(rl.jobsInProgress))
+			recordNamedEventGauge("startRate", rl.Name, float64(rl.startRateCounter.Rate())/rateCounterPeriod.Seconds())
+			recordNamedEventGauge("finishRate", rl.Name, float64(rl.finishRateCounter.Rate())/rateCounterPeriod.Seconds())
+			recordNamedEventGauge("errorRate", rl.Name, float64(rl.errorCounter.Rate())/rateCounterPeriod.Seconds())
 			recordNamedEventBy("errorCount", rl.Name, rl.errorCount)
 			recordNamedEventBy("successCount", rl.Name, rl.successCount)
 			rl.mux.Unlock()

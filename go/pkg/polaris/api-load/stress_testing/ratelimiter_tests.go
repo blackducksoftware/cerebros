@@ -166,6 +166,11 @@ func RunRateLimiterTests() {
 			Expect(f(1, .9, 0.11)).To(BeNumerically("~", 0.5, 0.01))
 		})
 
+		It("should not raise rates when less than 0.8 of the current limit", func() {
+			Expect(f(1, .80, 0.01)).To(BeNumerically("~", 1.1, 0.01))
+			Expect(f(1, .79, 0.01)).To(BeNumerically("~", 1, 0.01))
+		})
+
 		It("should raise rates even when below the min", func() {
 			Expect(f(0.25, .24, 0)).To(BeNumerically("~", 0.275, 0.01))
 			Expect(f(0.275, .27, 0)).To(BeNumerically("~", 0.3025, 0.01))
