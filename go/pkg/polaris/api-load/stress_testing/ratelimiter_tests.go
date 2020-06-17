@@ -122,23 +122,23 @@ func RunRateLimiterTests() {
 
 		It("RateLimiter on Const", func() {
 			limit := 50
-			rl := NewRateLimiter("test-const", Const(float64(limit)), 5*time.Second)
+			rl := NewRateLimiter("test-const", Const(float64(limit)), 5*time.Second, nil)
 
 			start := time.Now()
 			for i := 0; i < limit-1; i++ {
-				Expect(rl.Wait()).To(Succeed())
+				rl.Wait()
 			}
 			Expect(time.Since(start)).To(BeNumerically("<", 1*time.Second))
 
 			start2 := time.Now()
 			for j := 0; j < 3*limit; j++ {
-				Expect(rl.Wait()).To(Succeed())
+				rl.Wait()
 			}
 			Expect(time.Since(start2)).To(BeNumerically(">", 2500*time.Millisecond))
 		})
 
 		It("RateLimiter on linear increase -- this is a pretty fragile test", func() {
-			rl := NewRateLimiter("test-linear", Linear(1), 100*time.Millisecond)
+			rl := NewRateLimiter("test-linear", Linear(1), 100*time.Millisecond, nil)
 
 			for i := 1; i <= 10; i++ {
 				time.Sleep(110 * time.Millisecond)
@@ -147,6 +147,33 @@ func RunRateLimiterTests() {
 				Expect(actual).To(BeNumerically("~", expected, 0.1))
 				log.Infof("currently at %f, expected %f", actual, expected)
 			}
+		})
+	})
+
+	Describe("AdaptiveRateAdjuster", func() {
+		f := (&ErrorFractionThresholdConfig{
+			IncreaseRatio:            1.1,
+			IncreaseMaxErrorFraction: 0.05,
+			DecreaseRatio:            0.5,
+			DecreaseMinErrorFraction: 0.1,
+			MaxRate:                  10,
+			MinRate:                  0.5,
+		}).RateAdjuster()
+
+		It("should increase, stay the same, and decrease depending on error rate", func() {
+			Expect(f(1, .9, 0)).To(BeNumerically("~", 1.1, 0.01))
+			Expect(f(1, .9, 0.06)).To(BeNumerically("~", 1, 0.01))
+			Expect(f(1, .9, 0.11)).To(BeNumerically("~", 0.5, 0.01))
+		})
+
+		It("should not raise rates when less than 0.8 of the current limit", func() {
+			Expect(f(1, .80, 0.01)).To(BeNumerically("~", 1.1, 0.01))
+			Expect(f(1, .79, 0.01)).To(BeNumerically("~", 1, 0.01))
+		})
+
+		It("should raise rates even when below the min", func() {
+			Expect(f(0.25, .24, 0)).To(BeNumerically("~", 0.275, 0.01))
+			Expect(f(0.275, .27, 0)).To(BeNumerically("~", 0.3025, 0.01))
 		})
 	})
 }

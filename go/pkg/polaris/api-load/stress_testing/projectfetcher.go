@@ -3,6 +3,7 @@ package stress_testing
 import (
 	"fmt"
 	"github.com/blackducksoftware/cerebros/go/pkg/polaris/api"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"math/rand"
 	"sync"
@@ -48,6 +49,9 @@ func NewProjectFetcherWithRandomStart(client *api.Client, limit int) *ProjectFet
 	recordEvent("get initial projects", err)
 	// TODO for now, let's just not worry about errors
 	rand.Seed(time.Now().UTC().UnixNano())
+	if vinylInit.Meta.Total == 0 {
+		panic(errors.Errorf("unable to instantiate project fetcher: 0 projects found (meta %+v)", vinylInit.Meta))
+	}
 	initialOffset := rand.Intn(vinylInit.Meta.Total)
 	return NewProjectFetcher(client, initialOffset, limit)
 }

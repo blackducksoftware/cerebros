@@ -61,33 +61,36 @@ type RateConfig struct {
 		HighPeriodSeconds float64
 		RampSeconds       float64
 	}
+	AdaptiveRateAdjuster *ErrorFractionThresholdConfig
 }
 
-func (rc *RateConfig) RateLimiter(name string) (*RateLimiter, error) {
-	period := time.Duration(rc.RateChangePeriodSeconds) * time.Second
+func (rc *RateConfig) RateSetter() (BaseRateSetter, error) {
 	if rc.Constant != nil {
-		return NewRateLimiter(name, Const(rc.Constant.Baseline), period), nil
+		return Const(rc.Constant.Baseline), nil
 	}
 	if rc.Sinusoid != nil {
 		sin := rc.Sinusoid
-		f := Sinusoid(sin.Baseline, sin.Amplitude, sin.Period, sin.Phase)
-		return NewRateLimiter(name, f, period), nil
+		return Sinusoid(sin.Baseline, sin.Amplitude, sin.Period, sin.Phase), nil
 	}
 	if rc.Spike != nil {
 		s := rc.Spike
-		f := Spike(s.Baseline, s.LowPeriodSeconds, s.Height, s.HighPeriodSeconds, s.RampSeconds)
-		return NewRateLimiter(name, f, period), nil
+		return Spike(s.Baseline, s.LowPeriodSeconds, s.Height, s.HighPeriodSeconds, s.RampSeconds), nil
 	}
 	return nil, errors.New(fmt.Sprintf("all RateConfig options nil"))
 }
 
 func (rc *RateConfig) MustRateLimiter(name string) *RateLimiter {
-	rl, err := rc.RateLimiter(name)
+	period := time.Duration(rc.RateChangePeriodSeconds) * time.Second
+	rs, err := rc.RateSetter()
 	if err != nil {
-		log.Fatalf("unable to instantiate RateLimiter from config: \n%+v\n", err)
+		log.Fatalf("unable to instantiate BaseRateSetter from config: \n%+v\n", err)
 		panic(err)
 	}
-	return rl
+	var ea AdaptiveRateAdjuster = nil
+	if rc.AdaptiveRateAdjuster != nil {
+		ea = rc.AdaptiveRateAdjuster.RateAdjuster()
+	}
+	return NewRateLimiter(name, rs, period, ea)
 }
 
 type LoadConfig struct {
