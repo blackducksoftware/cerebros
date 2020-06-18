@@ -9,5 +9,7 @@
   "ProjectLimit": 1000,
   "RoleName": "Administrator",
 
-  "LogLevel": "debug"
+  "LogLevel": "debug",
+
+  "Verify": true
 }

@@ -30,6 +30,8 @@ type Config struct {
 
 	ProjectLimit int
 	RoleName     string
+
+	Verify bool
 }
 
 // GetLogLevel ...
@@ -74,6 +76,13 @@ func main() {
 
 	client := api.NewClient(url, email, password)
 	doOrDie(client.Authenticate())
+
+	if config.Verify {
+		ras, err := client.GetRoleAssignmentsForUser(serviceAccountEmail, 0, 10)
+		doOrDie(err)
+		log.Infof("found %d role assignments for %s", ras.Meta.Total, serviceAccountEmail)
+		return
+	}
 
 	// 1. prelim: get an orgId
 	log.Infof("getting organizations")

@@ -183,6 +183,18 @@ func (client *Client) GetRoleAssignmentsForProject(projectId string) (*GetRoleAs
 	return result, err
 }
 
+func (client *Client) GetRoleAssignmentsForUser(email string, offset int, limit int) (*GetRoleAssignmentsResponse, error) {
+	result := &GetRoleAssignmentsResponse{}
+	params := map[string]interface{}{
+		"filter[role-assignments][user][email][$eq]": email,
+		"include[users][]":                           "roleassignments",
+		"page[limit]":                                fmt.Sprintf("%d", limit),
+		"page[offset]":                               fmt.Sprintf("%d", offset),
+	}
+	_, err := client.GetJson(params, result, "api/auth/role-assignments")
+	return result, err
+}
+
 type GetRoleAssignmentsResponse struct {
 	Data []struct {
 		Type       string
@@ -300,6 +312,7 @@ type GetUsersResponse struct {
 			Email    string
 			Username string
 		}
+		// TODO relationships
 	}
 	Meta struct {
 		Limit  int
@@ -313,6 +326,17 @@ func (client *Client) GetUsers(offset int, limit int) (*GetUsersResponse, error)
 	params := map[string]interface{}{
 		"page[limit]":  fmt.Sprintf("%d", limit),
 		"page[offset]": fmt.Sprintf("%d", offset),
+	}
+	_, err := client.GetJson(params, result, "api/auth/users")
+	return result, err
+}
+
+func (client *Client) GetUserByEmail(email string) (*GetUsersResponse, error) {
+	result := &GetUsersResponse{}
+	params := map[string]interface{}{
+		"filter[users][email][$eq]": email,
+		"page[limit]":               "100",
+		"page[offset]":              "0",
 	}
 	_, err := client.GetJson(params, result, "api/auth/users")
 	return result, err
