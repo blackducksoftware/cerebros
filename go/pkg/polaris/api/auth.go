@@ -363,7 +363,7 @@ func (client *Client) CreateServiceAccount(email string, name string, orgId stri
 	bodyParams := map[string]interface{}{
 		"data": map[string]interface{}{
 			"attributes": map[string]interface{}{
-				"email":           email,
+				"email": email,
 				"password-login": map[string]string{
 					"password": password,
 				},

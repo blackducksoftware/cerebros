@@ -1,0 +1,13 @@
+{
+  "PolarisURL": "TODO",
+  "PolarisEmail": "TODO",
+  "PolarisPassword": "TODO",
+
+  "ServiceAccountName": "stonks-only-go-up",
+  "ServiceAccountPassword": "TODO",
+
+  "ProjectLimit": 1000,
+  "RoleName": "Administrator",
+
+  "LogLevel": "debug"
+}
