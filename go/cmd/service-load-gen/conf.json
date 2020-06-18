@@ -32,6 +32,7 @@
       }
     },
     "Auth": {
+      "PreRunLogins": 15,
       "Entitlements": {
         "WorkersCount": 20,
         "Rate": {

@@ -325,6 +325,7 @@ type GetUsersResponse struct {
 func (client *Client) GetUsers(offset int, limit int) (*GetUsersResponse, error) {
 	result := &GetUsersResponse{}
 	params := map[string]interface{}{
+		// "filter[users][automated][$eq]": "true",
 		"page[limit]":  fmt.Sprintf("%d", limit),
 		"page[offset]": fmt.Sprintf("%d", offset),
 	}
@@ -335,6 +336,7 @@ func (client *Client) GetUsers(offset int, limit int) (*GetUsersResponse, error)
 func (client *Client) GetUserByEmail(email string) (*GetUsersResponse, error) {
 	result := &GetUsersResponse{}
 	params := map[string]interface{}{
+		// "filter[users][automated][$eq]": "true",
 		"filter[users][email][$eq]": email,
 		"page[limit]":               "100",
 		"page[offset]":              "0",

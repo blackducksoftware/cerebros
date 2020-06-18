@@ -104,6 +104,7 @@ type RoleAssignmentsPager struct {
 }
 
 type AuthConfig struct {
+	PreRunLogins                 int
 	Entitlements                 *LoadConfig
 	Login                        *LoadConfig
 	RoleAssignmentsPager         map[string]*RoleAssignmentsPager

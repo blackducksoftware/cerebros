@@ -30,6 +30,9 @@ func RunIssueServerLoadGenerator(configPath string) {
 	pf := NewProjectFetcherWithRandomStart(apiClient, config.LoadGenerator.Issue.FetchProjectsCount)
 	pf.Start()
 
+	err = RunLoginsForUsers(apiClient, config.LoadGenerator.Auth.PreRunLogins)
+	doOrDie(err)
+
 	islg := NewIssueServerLoadGenerator(apiClient, pf, config.LoadGenerator.Issue)
 	auth := NewAuthLoadGenerator(pf, config.PolarisURL, config.PolarisEmail, config.PolarisPassword, config.LoadGenerator.Auth)
 
