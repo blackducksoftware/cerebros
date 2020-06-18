@@ -359,6 +359,43 @@ func (client *Client) CreateUser(email string, name string, orgId string) (*Crea
 	return result, err
 }
 
+func (client *Client) CreateServiceAccount(email string, name string, orgId string, password string) (*CreateUserResponse, error) {
+	bodyParams := map[string]interface{}{
+		"data": map[string]interface{}{
+			"attributes": map[string]interface{}{
+				"email":           email,
+				"password-login": map[string]string{
+					"password": password,
+				},
+				"first-time":      nil,
+				"enabled":         true,
+				"automated":       true,
+				"owner":           false,
+				"agreed-to-terms": false,
+				"system":          false,
+				"ip-whitelist": []string{
+					"0.0.0.0/0",
+				},
+				"organization-admin": false,
+				"name":               name,
+				"username":           fmt.Sprintf("%s-username", name),
+			},
+			"relationships": map[string]interface{}{
+				"organization": map[string]interface{}{
+					"data": map[string]interface{}{
+						"type": "organizations",
+						"id":   orgId,
+					},
+				},
+			},
+			"type": "users",
+		},
+	}
+	result := &CreateUserResponse{}
+	_, err := client.PostJson(bodyParams, result, "api/auth/users")
+	return result, err
+}
+
 type GetOrganizationsResponse struct {
 	Data []struct {
 		Type       string
@@ -367,6 +404,11 @@ type GetOrganizationsResponse struct {
 			OrganizationName string
 			Description      string
 		}
+	}
+	Meta struct {
+		Limit  int
+		Offset int
+		Total  int
 	}
 }
 

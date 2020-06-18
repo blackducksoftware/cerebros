@@ -93,7 +93,7 @@ func (client *Client) getJsonWithHeader(acceptHeader string, params map[string]i
 	recordResponseStatusCode("GET", pathTemplate, code)
 
 	if code < 200 || code > 299 {
-		return body, errors.New(fmt.Sprintf("bad status code to url %s: %d, response %s", url, code, body))
+		return body, errors.New(fmt.Sprintf("bad status code to url GET %s: %d, response %s", url, code, body))
 	}
 	return body, nil
 }
@@ -138,7 +138,7 @@ func (client *Client) PostJson(bodyParams map[string]interface{}, result interfa
 	recordResponseTime("POST", pathTemplate, duration, statusCode)
 
 	if statusCode < 200 || statusCode > 299 {
-		return body, errors.New(fmt.Sprintf("bad response status code: %d", resp.StatusCode()))
+		return body, errors.New(fmt.Sprintf("bad response status code to POST %s: %d, body %s", url, resp.StatusCode(), body))
 	}
 	//log.Debugf("tokens response: %d", resp.StatusCode())
 	return body, nil

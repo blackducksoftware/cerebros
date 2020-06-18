@@ -103,6 +103,7 @@ func (pf *ProjectFetcher) Start() {
 	workerId := 0
 	fetched := 0
 	pageStart := initialOffset / pageSize
+	log.Infof("starting project fetches: %d", pf.Limit)
 	go func() {
 	ForLoop:
 		for page := pageStart; fetched < limit; {
@@ -129,7 +130,7 @@ func (pf *ProjectFetcher) Start() {
 				defer pf.mux.Unlock()
 				for _, project := range vinyl.Data {
 					//start := time.Now()
-					log.Infof("writing project %s", project.Id)
+					log.Debugf("writing project %s", project.Id)
 					pf.projects = append(pf.projects, project)
 					//recordProjectWriteDuration(time.Since(start))
 					if branch, ok := project.Relationships["main-branch"]; ok && branch.Data != nil {
@@ -155,9 +156,10 @@ func (pf *ProjectFetcher) Start() {
 				break
 			}
 		}
-	}()
 
-	pf.mux.Lock()
-	pf.isDone = true
-	pf.mux.Unlock()
+		log.Infof("finishing project fetches, got %d, expected %d", fetched, pf.Limit)
+		pf.mux.Lock()
+		pf.isDone = true
+		pf.mux.Unlock()
+	}()
 }
