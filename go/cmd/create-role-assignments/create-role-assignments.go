@@ -130,11 +130,31 @@ func main() {
 	userId := cru.Data.Id
 	log.Infof("created user %s with id %s", serviceAccountName, userId)
 
-	// 5. create role assignments
+	// 5. create role assignments for projects with issues
+	mainBranchProjectIds := map[string]bool{}
 	for i := 0; i < pf.MainBranchProjectsLength() && i < limit; i++ {
 		project := pf.GetMainBranchProject(i)
 		_, err := client.CreateRoleAssignment(userId, roleId, project.ProjectId, orgId)
 		doOrDie(err)
-		log.Infof("created role assignment %d for user %s, role %s, project %s, org %s", i, userId, roleId, project.ProjectId, orgId)
+		log.Infof("created main-branch role assignment %d for user %s, role %s, project %s, org %s", i, userId, roleId, project.ProjectId, orgId)
+		mainBranchProjectIds[project.ProjectId] = true
+	}
+
+	// 6. create role assignments for projects with no issues
+	noIssueLimit := limit - pf.MainBranchProjectsLength()
+	log.Infof("created %d main branch role assignments, now need %d more", pf.MainBranchProjectsLength(), noIssueLimit)
+	if noIssueLimit > 0 {
+		for added, pi := 0, 0; added < noIssueLimit && pi < pf.ProjectsLength(); pi++ {
+			project := pf.GetProject(pi)
+			// don't add role assignments to the main-branch projects
+			if mainBranchProjectIds[project.Id] {
+				continue
+			}
+			// do add role assignments to non-main-branch projects
+			_, err := client.CreateRoleAssignment(userId, roleId, project.Id, orgId)
+			doOrDie(err)
+			log.Infof("created role assignment %d for user %s, role %s, project %s, org %s", added, userId, roleId, project.Id, orgId)
+			added++
+		}
 	}
 }
