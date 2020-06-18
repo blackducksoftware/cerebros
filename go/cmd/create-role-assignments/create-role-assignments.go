@@ -78,7 +78,7 @@ func main() {
 	doOrDie(client.Authenticate())
 
 	if config.Verify {
-		ras, err := client.GetRoleAssignmentsForUser(serviceAccountEmail, 0, 10)
+		ras, err := client.GetRoleAssignmentsForUser(serviceAccountEmail, 0, 10, true)
 		doOrDie(err)
 		log.Infof("found %d role assignments for %s", ras.Meta.Total, serviceAccountEmail)
 		return

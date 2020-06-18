@@ -183,10 +183,11 @@ func (client *Client) GetRoleAssignmentsForProject(projectId string) (*GetRoleAs
 	return result, err
 }
 
-func (client *Client) GetRoleAssignmentsForUser(email string, offset int, limit int) (*GetRoleAssignmentsResponse, error) {
+func (client *Client) GetRoleAssignmentsForUser(email string, offset int, limit int, isServiceAccount bool) (*GetRoleAssignmentsResponse, error) {
 	result := &GetRoleAssignmentsResponse{}
 	params := map[string]interface{}{
 		"filter[role-assignments][user][email][$eq]": email,
+		"filter[role-assignments][user][automated]":  fmt.Sprintf("%t", isServiceAccount),
 		"include[users][]":                           "roleassignments",
 		"page[limit]":                                fmt.Sprintf("%d", limit),
 		"page[offset]":                               fmt.Sprintf("%d", offset),
