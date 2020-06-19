@@ -6,5 +6,5 @@ import (
 )
 
 func main() {
-	stress_testing.RunIssueServerLoadGenerator(os.Args[1])
+	stress_testing.Run(os.Args[1])
 }

@@ -343,7 +343,7 @@ func NewAuthLoadGenerator(projects *ProjectFetcher, url string, email string, pa
 	return alg
 }
 
-func (alg *AuthLoadGenerator) stop() {
+func (alg *AuthLoadGenerator) Stop() {
 	close(alg.stopChan)
 	if alg.entitlementsLoadManager != nil {
 		alg.entitlementsLoadManager.stop()

@@ -15,7 +15,7 @@ func doOrDie(err error) {
 	}
 }
 
-func RunIssueServerLoadGenerator(configPath string) {
+func Run(configPath string) {
 	config, err := GetConfig(configPath)
 	doOrDie(err)
 
@@ -23,18 +23,8 @@ func RunIssueServerLoadGenerator(configPath string) {
 	doOrDie(err)
 	log.SetLevel(logLevel)
 
-	apiClient := api.NewClient(config.PolarisURL, config.PolarisEmail, config.PolarisPassword)
-
-	doOrDie(apiClient.Authenticate())
-
-	pf := NewProjectFetcherWithRandomStart(apiClient, config.LoadGenerator.Issue.FetchProjectsCount)
-	pf.Start()
-
-	err = RunLoginsForUsers(apiClient, config.LoadGenerator.Auth.PreRunLogins)
+	islg, auth, err := RunLoadGenerator(config)
 	doOrDie(err)
-
-	islg := NewIssueServerLoadGenerator(apiClient, pf, config.LoadGenerator.Issue)
-	auth := NewAuthLoadGenerator(pf, config.PolarisURL, config.PolarisEmail, config.PolarisPassword, config.LoadGenerator.Auth)
 
 	prometheus.Unregister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
 	prometheus.Unregister(prometheus.NewGoCollector())
@@ -49,4 +39,24 @@ func RunIssueServerLoadGenerator(configPath string) {
 
 	stop := make(chan struct{})
 	<-stop
+}
+
+func RunLoadGenerator(config *Config) (*IssueServerLoadGenerator, *AuthLoadGenerator, error) {
+	apiClient := api.NewClient(config.PolarisURL, config.PolarisEmail, config.PolarisPassword)
+
+	if err := apiClient.Authenticate(); err != nil {
+		return nil, nil, err
+	}
+
+	pf := NewProjectFetcherWithRandomStart(apiClient, config.LoadGenerator.Issue.FetchProjectsCount)
+	pf.Start()
+
+	if err := RunLoginsForUsers(apiClient, config.LoadGenerator.Auth.PreRunLogins); err != nil {
+		return nil, nil, err
+	}
+
+	islg := NewIssueServerLoadGenerator(apiClient, pf, config.LoadGenerator.Issue)
+	auth := NewAuthLoadGenerator(pf, config.PolarisURL, config.PolarisEmail, config.PolarisPassword, config.LoadGenerator.Auth)
+
+	return islg, auth, nil
 }

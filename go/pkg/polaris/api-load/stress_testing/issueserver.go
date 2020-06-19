@@ -193,7 +193,7 @@ func NewIssueServerLoadGenerator(polarisClient *api.Client, projects *ProjectFet
 	return c
 }
 
-func (c *IssueServerLoadGenerator) stop() {
+func (c *IssueServerLoadGenerator) Stop() {
 	close(c.stopChan)
 	if c.issuesLoadManager != nil {
 		c.issuesLoadManager.stop()
