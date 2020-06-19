@@ -163,7 +163,8 @@ func (pras *PostRoleAssignmentsSource) RunJob() (string, error) {
 	if err != nil {
 		log.Errorf("unable to create role assignment: %s, %s, %s, %s, %s, %+v", userId, pras.roleId, projectId, pras.orgId, ras, err)
 	} else {
-		log.Debugf("created role assignment: %s, %s, %s, %s, %s", userId, pras.roleId, projectId, pras.orgId, ras)
+		log.Debugf("created role assignment: %s, %s, %s, %s", userId, pras.roleId, projectId, pras.orgId)
+		log.Tracef("role assignment response: %s", ras)
 	}
 	return pras.Name, err
 }
