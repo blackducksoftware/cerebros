@@ -37,6 +37,8 @@ type Config struct {
 
 	Port int
 
+	MinutesToRun int
+
 	LoadGenerator struct {
 		Issue *IssueServerConfig
 		Auth  *AuthConfig

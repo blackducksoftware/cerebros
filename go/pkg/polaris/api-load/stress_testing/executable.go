@@ -7,6 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"time"
 )
 
 func doOrDie(err error) {
@@ -31,6 +32,8 @@ func Run(configPath string) {
 
 	http.Handle("/metrics", promhttp.Handler())
 
+	//gatewayUrl:="http://polaris-monitoring-prometheus-pushgateway.monitoring:9091"
+	//push.New(gatewayUrl, "cerebros").Collector(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{})).Add()
 	addr := fmt.Sprintf(":%d", config.Port)
 	log.Infof("successfully instantiated issue %+v and auth %+v, serving on %s", islg, auth, addr)
 	go func() {
@@ -39,6 +42,12 @@ func Run(configPath string) {
 
 	stop := make(chan struct{})
 	<-stop
+
+	<-time.After(time.Duration(config.MinutesToRun) * time.Minute)
+	log.Infof("stopping auth and issue server load generators...")
+	islg.Stop()
+	auth.Stop()
+	log.Infof("successfully stopped both the auth and issue server load generators")
 }
 
 func RunLoadGenerator(config *Config) (*IssueServerLoadGenerator, *AuthLoadGenerator, error) {

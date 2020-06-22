@@ -6,6 +6,8 @@
   "LogLevel": "debug",
   "Port": 9876,
 
+  "MinutesToRun": "30",
+
   "LoadGenerator": {
     "Issue": {
       "FetchProjectsCount": 10,
