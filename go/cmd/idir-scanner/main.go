@@ -146,7 +146,7 @@ func process(job IdirScanJob, serviceAccountPath string, jb *polaris.Scanner) er
 	}
 	os.Remove(tmpFile)
 
-	if err := jb.Scan(tmpDir, idirPath); err != nil {
+	if err := jb.Scan(tmpDir, idirPath, false); err != nil {
 		return err
 	}
 

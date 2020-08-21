@@ -21,7 +21,7 @@ under the License.
 package main
 
 import (
-	"github.com/blackducksoftware/cerebros/go/pkg/polaris"
+	synopsys_scancli "github.com/blackducksoftware/cerebros/go/pkg/synopsys-scancli"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -29,10 +29,8 @@ import (
 )
 
 type Config struct {
-	PolarisCLIPath string
-	CapturePath    string
-	PolarisURL     string
-	PolarisToken   string
+	Polaris *synopsys_scancli.PolarisConfig
+	Scan    *synopsys_scancli.ScanConfig
 }
 
 // GetConfig ...
@@ -53,20 +51,19 @@ func GetConfig(configPath string) (*Config, error) {
 	return config, nil
 }
 
+func doOrDie(err error) {
+	if err != nil {
+		log.Fatalf("%+v", err)
+	}
+}
+
 func main() {
 	log.SetLevel(log.DebugLevel)
 
 	config, err := GetConfig(os.Args[1])
-	scanner, err := polaris.NewScanner(config.PolarisCLIPath, config.PolarisURL, config.PolarisToken)
-	if err != nil {
-		log.Errorf("%+v", err)
-		panic(err)
-	}
-	err = scanner.CaptureAndScan(config.CapturePath)
-	if err != nil {
-		panic(err)
-	}
-	log.Infof("successfully captured and scanned %s", config.CapturePath)
-
-	//scanner.Scan()
+	doOrDie(err)
+	scanner, err := synopsys_scancli.NewScannerFromConfig(nil, config.Polaris, nil)
+	doOrDie(err)
+	err = scanner.Scan(config.Scan)
+	doOrDie(err)
 }

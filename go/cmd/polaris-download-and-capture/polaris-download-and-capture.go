@@ -117,7 +117,7 @@ func main() {
 	}
 	log.Infof("successfully instantiated and configured polaris scanner at %s", cliPath)
 
-	err = scanner.CaptureAndScan(config.CapturePath)
+	err = scanner.CaptureAndScan(config.CapturePath, false)
 	if err != nil {
 		panic(err)
 	}
