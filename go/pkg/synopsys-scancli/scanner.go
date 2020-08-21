@@ -59,7 +59,9 @@ func initPolaris(config *PolarisConfig) (*polaris.Scanner, error) {
 		return nil, errors.WithMessagef(err, "unable to download polaris cli")
 	}
 
-	cliPath := fmt.Sprintf("%s/bin", unzippedCLIPath)
+	cliPath := unzippedCLIPath
+	// TODO or should this be:
+	// cliPath := fmt.Sprintf("%s/bin", unzippedCLIPath)
 
 	tokenName := fmt.Sprintf("containerized-cli-%d", rand.Int())
 	scanToken, err := polarisClient.GetAccessToken(tokenName)
