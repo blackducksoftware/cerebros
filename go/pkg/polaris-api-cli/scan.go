@@ -42,7 +42,7 @@ func setupScanCommand() *cobra.Command {
 		},
 	}
 
-	command.Flags().StringVar(&args.PolarisURL, "polaris-url", "https://local.dev.polaris.synopsys.com/", "URL of polaris instance")
+	command.Flags().StringVar(&args.PolarisURL, "polaris-url", "https://local.dev.polaris.synopsys.com", "URL of polaris instance")
 
 	command.Flags().StringVar(&args.GithubRepo, "github-repo", "", "name of github repo to scan")
 	command.MarkFlagRequired("github-repo")
@@ -57,7 +57,6 @@ func setupScanCommand() *cobra.Command {
 	command.MarkFlagRequired("project-name")
 
 	command.Flags().StringVar(&args.OSType, "ostype", "mac", "linux, mac or windows")
-	command.Flags().StringVar(&args.PolarisURL, "polaris-url", "https://local.dev.polaris.synopsys.com/", "URL of polaris instance")
 	command.Flags().BoolVar(&args.UseLocalAnalysis, "local", false, "perform coverity analysis locally")
 
 	command.Flags().StringVar(&args.CLIPath, "clipath", path.Join(getHomeDir(), "Downloads", "polaris_cli-macosx"), "path to look for polaris tools at, or download to if not found")

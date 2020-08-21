@@ -43,15 +43,13 @@ func setupToolsDebugCommand() *cobra.Command {
 		},
 	}
 
-	command.Flags().StringVar(&args.PolarisURL, "polaris-url", "https://local.dev.polaris.synopsys.com/", "URL of polaris instance")
+	command.Flags().StringVar(&args.PolarisURL, "polaris-url", "https://local.dev.polaris.synopsys.com", "URL of polaris instance")
 
 	command.Flags().StringVar(&args.Email, "email", "", "email of Polaris user")
 	command.MarkFlagRequired("email")
 
 	command.Flags().StringVar(&args.Password, "password", "", "Polaris password")
 	command.MarkFlagRequired("password")
-
-	command.Flags().StringVar(&args.PolarisURL, "polaris-url", "https://local.dev.polaris.synopsys.com/", "URL of polaris instance")
 
 	return command
 }
@@ -88,7 +86,7 @@ func setupPostToolsCommand() *cobra.Command {
 		},
 	}
 
-	command.Flags().StringVar(&args.PolarisURL, "polaris-url", "https://local.dev.polaris.synopsys.com/", "URL of polaris instance")
+	command.Flags().StringVar(&args.PolarisURL, "polaris-url", "https://local.dev.polaris.synopsys.com", "URL of polaris instance")
 
 	command.Flags().StringVar(&args.Email, "email", "", "email of Polaris user")
 	command.MarkFlagRequired("email")
@@ -96,7 +94,6 @@ func setupPostToolsCommand() *cobra.Command {
 	command.Flags().StringVar(&args.Password, "password", "", "Polaris password")
 	command.MarkFlagRequired("password")
 
-	command.Flags().StringVar(&args.PolarisURL, "polaris-url", "https://local.dev.polaris.synopsys.com/", "URL of polaris instance")
 	command.Flags().StringVar(&args.Certfile, "certfile", "", "path to certfile (may not be necessary)")
 
 	return command

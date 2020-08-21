@@ -72,6 +72,10 @@ func FetchGithubArchive(repo string) (string, string, error) {
 		return tempDir, "", errors.Wrapf(err, "http GET request to %s failed", url)
 	}
 
+	if resp.IsError() {
+		return tempDir, "", errors.Errorf("http GET request to %s failed with code %d", url, resp.StatusCode())
+	}
+
 	// 3. unzip archive
 	unzipPath := path.Join(tempDir, cleanedName)
 	unzipStart := time.Now()
