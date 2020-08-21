@@ -76,7 +76,9 @@ func runScan(args *ScanArgs) {
 	scanConfig := &synopsys_scancli.ScanConfig{
 		Key: args.ProjectName,
 		ScanType: &synopsys_scancli.ScanTypeConfig{
-			Polaris: true,
+			Polaris: &synopsys_scancli.PolarisScanConfig{
+				UseLocalAnalysis: args.UseLocalAnalysis,
+			},
 		},
 		CodeLocation: &synopsys_scancli.CodeLocation{
 			GitRepo: &synopsys_scancli.GitRepo{Repo: args.GithubRepo},

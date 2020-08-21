@@ -146,8 +146,8 @@ func (sc *Scanner) Scan(scanConfig *ScanConfig) error {
 	}
 
 	scanType := scanConfig.ScanType
-	if scanType.Polaris {
-		return sc.Polaris.CaptureAndScan(path)
+	if scanType.Polaris != nil {
+		return sc.Polaris.CaptureAndScan(path, scanType.Polaris.UseLocalAnalysis)
 	} else if scanType.Blackduck != nil {
 		return sc.Blackduck.Scan(path, scanType.Blackduck)
 	} else {

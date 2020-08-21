@@ -44,8 +44,12 @@ type DockerImage struct {
 	//Registries []docker.RegistryAuth // TODO handle this elsewhere?
 }
 
+type PolarisScanConfig struct {
+	UseLocalAnalysis bool
+}
+
 type ScanTypeConfig struct {
-	Polaris   bool
+	Polaris   *PolarisScanConfig
 	Blackduck *hubcli.ScanConfig
 }
 

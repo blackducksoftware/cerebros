@@ -23,7 +23,7 @@ package polaris
 type ScannerInterface interface {
 	Capture(capturePath string) (string, error)
 
-	CaptureAndScan(capturePath string) error
+	CaptureAndScan(capturePath string, useLocalAnalysis bool) error
 
-	Scan(repoPath string, idirPath string) error
+	Scan(repoPath string, idirPath string, useLocalAnalysis bool) error
 }

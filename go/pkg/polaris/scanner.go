@@ -95,15 +95,15 @@ func (ps *Scanner) polarisBinaryPath() string {
 	return path.Join(ps.CLIPath, "polaris")
 }
 
-func (ps *Scanner) CaptureAndScan(capturePath string) error {
+func (ps *Scanner) CaptureAndScan(capturePath string, useLocalAnalysis bool) error {
 	idirPath, err := ps.Capture(capturePath)
 	if err != nil {
 		return errors.WithMessagef(err, "unable to capture path %s", capturePath)
 	}
-	return ps.Scan(capturePath, idirPath)
+	return ps.Scan(capturePath, idirPath, useLocalAnalysis)
 }
 
-func (ps *Scanner) Scan(repoPath string, idirPath string) error {
+func (ps *Scanner) Scan(repoPath string, idirPath string, useLocalAnalysis bool) error {
 	shellCmd := ps.polarisBinaryPath() + " setup"
 	log.Infof("attempting to exec %s in %s", shellCmd, repoPath)
 	start := time.Now()
@@ -135,6 +135,11 @@ func (ps *Scanner) Scan(repoPath string, idirPath string) error {
 			},
 		},
 	}
+	if useLocalAnalysis {
+		coverityConfig["analyze"] = map[string]interface{}{
+			"mode": "local",
+		}
+	}
 	coverityConfigYaml, err := yaml.Marshal(coverityConfig)
 	log.Debugf("using coverity yaml config: \n%s\n", coverityConfigYaml)
 	recordEvent("marshal_coverity_yaml_config", err)
@@ -148,7 +153,12 @@ func (ps *Scanner) Scan(repoPath string, idirPath string) error {
 		return errors.Wrapf(err, "unable to write file %s", polarisYmlPath)
 	}
 
-	analyzeCmd := ps.polarisBinaryPath() + " analyze"
+	var analyzeCmd string
+	if useLocalAnalysis {
+		analyzeCmd = ps.polarisBinaryPath() + " analyze -w"
+	} else {
+		analyzeCmd = ps.polarisBinaryPath() + " analyze"
+	}
 	analyzeStart := time.Now()
 	err = util.ExecShellWithTimeout(analyzeCmd, repoPath, analyzeTimeout)
 	recordEventTime("polaris_analyze", time.Now().Sub(analyzeStart))
