@@ -61,7 +61,6 @@ func (loadGen *LoadGenerator) StartGeneratingLoad() {
 				//}
 				//worker = NewLoadGenerationWorker(idString, "entitlements", f, loadGen.Stop)
 				panic("entitlements loadgen workers not supported at the moment")
-				break
 			case "Groups", "groups":
 				f := func() error {
 					groups, err := loadGen.Client.GetGroups()

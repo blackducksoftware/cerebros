@@ -39,10 +39,11 @@ func NewLoadGenerationWorker(id string, eventName string, f func() error, stop <
 func (lgw *LoadGenerationWorker) Start() {
 	go func() {
 		log.Infof("starting LoadGenerationWorker goroutine %s:%s", lgw.Id, lgw.EventName)
+	ForLoop:
 		for {
 			select {
 			case <-lgw.Stop:
-				break
+				break ForLoop
 			default:
 			}
 			log.Debugf("loadGen goroutine %s:%s issuing request", lgw.Id, lgw.EventName)

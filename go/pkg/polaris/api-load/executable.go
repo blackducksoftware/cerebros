@@ -89,10 +89,11 @@ func Run() {
 
 func startRegularReauthentication(client *api.Client, stop <-chan struct{}) {
 	go func() {
+	ForLoop:
 		for {
 			select {
 			case <-stop:
-				break
+				break ForLoop
 			case <-time.After(15 * time.Minute):
 			}
 			log.Infof("attempting to authenticate into polaris")
