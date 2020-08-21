@@ -24,12 +24,13 @@ import (
 	"context"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"os"
 	"os/exec"
 	"path"
 	"time"
 )
 
-func ExecShell(shellCmd string, directory string, timeout time.Duration) (string, error) {
+func ExecShellWithTimeout(shellCmd string, directory string, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -39,18 +40,26 @@ func ExecShell(shellCmd string, directory string, timeout time.Duration) (string
 	}
 
 	log.Infof("about to run %s in directory %s", execCmd.String(), directory)
-	output, err := execCmd.CombinedOutput()
+	err := RunCommandAndPrint(execCmd)
 
 	if ctx.Err() == context.DeadlineExceeded {
 		log.Errorf("command %s in %s timed out", execCmd.String(), directory)
-		return "", errors.Wrapf(ctx.Err(), "command timed out")
+		return errors.Wrapf(ctx.Err(), "command '%s' timed out", execCmd.String())
 	}
 
 	if err != nil {
 		log.Errorf("failed to run %s in directory %s: %s", execCmd.String(), directory, err)
-		return string(output), errors.Wrapf(err, "command failed: %s", output)
+		return err
 	}
 
 	log.Infof("successfully ran %s in directory %s", execCmd.String(), directory)
-	return string(output), nil
+	return nil
+}
+
+func RunCommandAndPrint(cmd *exec.Cmd) error {
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	// can't use RunCommand(cmd) here -- attaching to os pipes interferes with cmd.CombinedOutput()
+	log.Infof("running command '%s' with pipes attached in directory: '%s'", cmd.String(), cmd.Dir)
+	return errors.Wrapf(cmd.Run(), "unable to run command '%s'", cmd.String())
 }

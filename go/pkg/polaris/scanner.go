@@ -66,18 +66,18 @@ func (ps *Scanner) Capture(capturePath string) (string, error) {
 	log.Infof("Running Polaris Capture on path %s", capturePath)
 	shellCmd := ps.polarisBinaryPath() + " capture"
 	start := time.Now()
-	output, err := util.ExecShell(shellCmd, capturePath, captureTimeout)
+	err := util.ExecShellWithTimeout(shellCmd, capturePath, captureTimeout)
 	recordEventTime("polaris_capture", time.Now().Sub(start))
 	recordEvent("polaris_capture", err)
 	if err != nil {
-		return "", errors.WithMessagef(err, "unable to run polaris capture: %s", output)
+		return "", errors.WithMessagef(err, "unable to run polaris capture")
 	}
 
 	log.Infof("Deleting polaris.yml")
 	err = os.Remove(path.Join(capturePath, "polaris.yml"))
 	recordEvent("delete_polaris_yml", err)
 	if err != nil {
-		return "", errors.WithMessagef(err, "unable to remove polaris.yml")
+		return "", errors.Wrapf(err, "unable to remove polaris.yml")
 	}
 
 	coverityDirPath := path.Join(capturePath, ".synopsys/polaris/data/coverity")
@@ -107,25 +107,25 @@ func (ps *Scanner) Scan(repoPath string, idirPath string) error {
 	shellCmd := ps.polarisBinaryPath() + " setup"
 	log.Infof("attempting to exec %s in %s", shellCmd, repoPath)
 	start := time.Now()
-	setupOutput, err := util.ExecShell(shellCmd, repoPath, setupTimeout)
+	err := util.ExecShellWithTimeout(shellCmd, repoPath, setupTimeout)
 	recordEventTime("polaris_setup", time.Now().Sub(start))
 	recordEvent("polaris_setup", err)
 	if err != nil {
-		return errors.WithMessagef(err, "unable to exec %s in %s: %s", shellCmd, repoPath, setupOutput)
+		return err
 	}
 
 	polarisYmlPath := path.Join(repoPath, "polaris.yml")
 	content, err := ioutil.ReadFile(polarisYmlPath)
 	recordEvent("read_polaris_yaml", err)
 	if err != nil {
-		return errors.WithMessagef(err, "unable to read file %s", polarisYmlPath)
+		return errors.Wrapf(err, "unable to read file %s", polarisYmlPath)
 	}
 
 	coverityConfig := make(map[string]interface{})
 	err = yaml.Unmarshal(content, coverityConfig)
 	recordEvent("unmarshal_coverity_yaml_config", err)
 	if err != nil {
-		return errors.WithMessagef(err, "unable to unmarshal yaml for coverity config")
+		return errors.Wrapf(err, "unable to unmarshal yaml for coverity config")
 	}
 	// TODO - Need to get the coverityConfig struct from somewhere :/
 	coverityConfig["capture"] = map[string]interface{}{
@@ -136,27 +136,24 @@ func (ps *Scanner) Scan(repoPath string, idirPath string) error {
 		},
 	}
 	coverityConfigYaml, err := yaml.Marshal(coverityConfig)
+	log.Debugf("using coverity yaml config: \n%s\n", coverityConfigYaml)
 	recordEvent("marshal_coverity_yaml_config", err)
 	if err != nil {
-		return errors.WithMessagef(err, "unable to marshal yaml for coverity config")
+		return errors.Wrapf(err, "unable to marshal yaml for coverity config")
 	}
 
 	err = ioutil.WriteFile(polarisYmlPath, coverityConfigYaml, os.FileMode(700))
 	recordEvent("write_coverity_config", err)
 	if err != nil {
-		return errors.WithMessagef(err, "unable to write file %s", polarisYmlPath)
+		return errors.Wrapf(err, "unable to write file %s", polarisYmlPath)
 	}
 
 	analyzeCmd := ps.polarisBinaryPath() + " analyze"
 	analyzeStart := time.Now()
-	analyzeOutput, err := util.ExecShell(analyzeCmd, repoPath, analyzeTimeout)
+	err = util.ExecShellWithTimeout(analyzeCmd, repoPath, analyzeTimeout)
 	recordEventTime("polaris_analyze", time.Now().Sub(analyzeStart))
 	recordEvent("polaris_analyze", err)
-	if err != nil {
-		return errors.WithMessagef(err, "unable to exec %s in %s: %s", analyzeCmd, repoPath, analyzeOutput)
-	}
-
-	return nil
+	return err
 }
 
 func (ps *Scanner) configurePolarisCliWithAccessToken() error {
@@ -171,13 +168,12 @@ func (ps *Scanner) configurePolarisCliWithAccessToken() error {
 
 	start := time.Now()
 	cmd := ps.polarisBinaryPath() + " configure"
-	output, err := util.ExecShell(cmd, ps.CLIPath, configureTimeout)
+	err = util.ExecShellWithTimeout(cmd, ps.CLIPath, configureTimeout)
 	recordEventTime("polaris_configure", time.Now().Sub(start))
 	recordEvent("polaris_configure", err)
 	if err != nil {
 		log.Errorf("failed to run polaris configure: %s", err)
-		log.Debugf("Polaris error output: %s", output)
-		return errors.WithMessagef(err, "unable to run shell cmd: %s", cmd)
+		return err
 	}
 
 	return nil
@@ -230,13 +226,13 @@ func (ps *Scanner) configurePolarisCliWithAccessToken() error {
 //func scanRepoWithCoverityCli(covBuildCliPath, repoPath, buildToolCommand string) error {
 //	// example: /Users/hammer/.synopsys/polaris/coverity-tools-macosx-2019.03/bin/cov-configure --java
 //	cmd := fmt.Sprintf("cd %s;%s/cov-configure --java", repoPath, covBuildCliPath)
-//	if output, err := util.ExecShell(cmd); err != nil {
+//	if output, err := util.ExecShellWithTimeout(cmd); err != nil {
 //		fmt.Printf("error out: %s\n", output)
 //		return err
 //	}
 //	// /Users/hammer/.synopsys/polaris/coverity-tools-macosx-2019.03/bin/cov-build --dir myidir /Users/hammer/go/src/github.com/blackducksoftware/hub-fortify-parser/gradlew
 //	cmd = fmt.Sprintf("cd %s;%s/cov-build --dir myidirs %s", repoPath, covBuildCliPath, buildToolCommand)
-//	if output, err := util.ExecShell(cmd); err != nil {
+//	if output, err := util.ExecShellWithTimeout(cmd); err != nil {
 //		fmt.Printf("error out: %s\n", output)
 //		return err
 //	}

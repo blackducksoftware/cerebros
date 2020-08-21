@@ -38,9 +38,8 @@ func GitClone(repo string) (string, error) {
 		return "", errors.Wrapf(err, "unable to create tmp dir")
 	}
 	command := fmt.Sprintf("git clone git@github.com:%s %s", repo, cloneDirectory)
-	output, err := util.ExecShell(command, ".", 2*time.Minute)
+	err = util.ExecShellWithTimeout(command, ".", 2*time.Minute)
 	if err != nil {
-		log.Debugf("unable to git clone, output: %s", output)
 		return "", errors.WithMessagef(err, "unable to clone repo %s to %s", repo, cloneDirectory)
 	}
 	return cloneDirectory, nil
