@@ -117,6 +117,21 @@ func (client *Client) GetTools(limit int) (*GetToolsResponse, error) {
 	return result, err
 }
 
+// PostTools handles
+//   https://sig-gitlab.internal.synopsys.com/clops/polaris-local/-/blob/master/README.md#temporary-workaround-if-needed-1
+func (client *Client) PostTools() (string, error) {
+	params := map[string]interface{}{
+		"data": map[string]interface{}{
+			"type": "tool",
+			"attributes": map[string]string{
+				"version": "2020.06",
+				"name":    "Coverity",
+			},
+		},
+	}
+	return client.PostJson(params, nil, "api/common/v0/tools")
+}
+
 type GetV0BranchResponse struct {
 	Data struct {
 		Type       string

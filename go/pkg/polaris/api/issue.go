@@ -147,3 +147,12 @@ func (client *Client) GetV1Issue(projectId string, branchId string, issueId stri
 // TODO:
 // /v1/roll-up-counts
 // /v1/counts/status
+
+func (client *Client) QueryV0DiscoveryFilterKeysIssuetoolidValues() (string, error) {
+	// example:
+	//   https://local.dev.polaris.synopsys.com/api/query/v0/discovery/filter-keys/issue.tool.id/values?page%5Blimit%5D=50
+	params := map[string]interface{}{
+		"page[limit]": "50",
+	}
+	return client.GetJson(params, nil, "api/query/v0/discovery/filter-keys/issue.tool.id/values")
+}

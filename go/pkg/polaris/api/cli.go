@@ -77,6 +77,14 @@ func ParseOSType(osType string) (OSType, error) {
 	return "", errors.New(fmt.Sprintf("invalid ostype: %s", osType))
 }
 
+func MustParseOSType(osType string) OSType {
+	parsed, err := ParseOSType(osType)
+	if err != nil {
+		panic(err)
+	}
+	return parsed
+}
+
 func (o *OSType) UnmarshalJSON(data []byte) error {
 	var str string
 	err := json.Unmarshal(data, &str)
