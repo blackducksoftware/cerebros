@@ -21,12 +21,14 @@ under the License.
 package synopsys_scancli
 
 import (
+	"context"
 	"fmt"
 	"github.com/blackducksoftware/cerebros/go/pkg/util"
 	resty "github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"os/exec"
 	"path"
 	"strings"
 	"time"
@@ -37,8 +39,16 @@ func GitClone(repo string) (string, error) {
 	if err != nil {
 		return "", errors.Wrapf(err, "unable to create tmp dir")
 	}
-	command := fmt.Sprintf("git clone git@github.com:%s %s", repo, cloneDirectory)
-	err = util.ExecShellWithTimeout(command, ".", 2*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	command := exec.CommandContext(ctx,
+		"git",
+		"clone",
+		fmt.Sprintf("git@github.com:%s", repo),
+		cloneDirectory)
+	// TODO can we set the command's directory to .?  or is that unnecessary?
+	err = util.CommandRunAndPrint(command)
+
 	if err != nil {
 		return "", errors.WithMessagef(err, "unable to clone repo %s to %s", repo, cloneDirectory)
 	}

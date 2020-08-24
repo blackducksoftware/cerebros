@@ -3,6 +3,7 @@ package polaris_api_cli
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"github.com/blackducksoftware/cerebros/go/pkg/polaris/api"
 	"github.com/go-resty/resty/v2"
 	log "github.com/sirupsen/logrus"
@@ -10,7 +11,7 @@ import (
 	"io/ioutil"
 )
 
-func setupToolsCommand() *cobra.Command {
+func SetupToolsCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:   "tools",
 		Short: "tools functionality",
@@ -18,8 +19,8 @@ func setupToolsCommand() *cobra.Command {
 		Args:  cobra.ExactArgs(0),
 	}
 
-	command.AddCommand(setupToolsDebugCommand())
-	command.AddCommand(setupPostToolsCommand())
+	command.AddCommand(SetupToolsDebugCommand())
+	command.AddCommand(SetupPostToolsCommand())
 
 	return command
 }
@@ -30,7 +31,7 @@ type ToolsDebugArgs struct {
 	Password   string
 }
 
-func setupToolsDebugCommand() *cobra.Command {
+func SetupToolsDebugCommand() *cobra.Command {
 	args := &ToolsDebugArgs{}
 
 	command := &cobra.Command{
@@ -39,7 +40,7 @@ func setupToolsDebugCommand() *cobra.Command {
 		Long:  "check tools state",
 		Args:  cobra.ExactArgs(0),
 		Run: func(cmd *cobra.Command, as []string) {
-			runToolsDebug(args)
+			RunToolsDebug(args)
 		},
 	}
 
@@ -54,7 +55,7 @@ func setupToolsDebugCommand() *cobra.Command {
 	return command
 }
 
-func runToolsDebug(args *ToolsDebugArgs) {
+func RunToolsDebug(args *ToolsDebugArgs) {
 	polarisClient := api.NewClient(args.PolarisURL, args.Email, args.Password)
 
 	err := polarisClient.Authenticate()
@@ -64,6 +65,10 @@ func runToolsDebug(args *ToolsDebugArgs) {
 	tools, err := polarisClient.GetTools(25)
 	DoOrDie(err)
 	log.Warningf("my tools: %+v", tools)
+
+	toolIds, err := polarisClient.QueryV0DiscoveryFilterKeysIssuetoolidValues()
+	DoOrDie(err)
+	log.Warningf("tool ids: %s", toolIds)
 }
 
 type PostToolsArgs struct {
@@ -73,7 +78,7 @@ type PostToolsArgs struct {
 	Certfile   string
 }
 
-func setupPostToolsCommand() *cobra.Command {
+func SetupPostToolsCommand() *cobra.Command {
 	args := &PostToolsArgs{}
 
 	command := &cobra.Command{
@@ -82,7 +87,7 @@ func setupPostToolsCommand() *cobra.Command {
 		Long:  "this should fix an issue with local scans not working",
 		Args:  cobra.ExactArgs(0),
 		Run: func(cmd *cobra.Command, as []string) {
-			runPostTools(args)
+			RunPostTools(args)
 		},
 	}
 
@@ -99,17 +104,37 @@ func setupPostToolsCommand() *cobra.Command {
 	return command
 }
 
-func runPostTools(args *PostToolsArgs) {
+const CurlTemplate = `curl --fail --verbose --location --request POST '%s/api/common/v0/tools?=' \
+  --header 'Content-Type: application/vnd.api+json' \
+  --header 'Authorization: Bearer %s' \
+  --data-raw '{
+    "data":
+      {
+        "type": "tool",
+        "attributes": {
+          "version": "2020.06",
+          "name": "Coverity"
+        }
+      }
+    }'
+`
+
+func RunPostTools(args *PostToolsArgs) {
 	polarisClient := api.NewClient(args.PolarisURL, args.Email, args.Password)
 
 	err := polarisClient.Authenticate()
 	DoOrDie(err)
 
-	if args.Certfile != "" {
-		toolIds, err := polarisClient.QueryV0DiscoveryFilterKeysIssuetoolidValues()
-		DoOrDie(err)
-		log.Warningf("tool ids: %s", toolIds)
+	token, err := polarisClient.GetAccessToken("hmmm")
+	DoOrDie(err)
 
+	tokenCommand := fmt.Sprintf(CurlTemplate, args.PolarisURL, token.Data.Attributes.AccessToken)
+	log.Infof("what about: \n\n%s\n", tokenCommand)
+
+	curlCommand := fmt.Sprintf(CurlTemplate, args.PolarisURL, polarisClient.AuthToken)
+	log.Infof("you could also use this curl command:\n\n%s\n", curlCommand)
+
+	if args.Certfile != "" {
 		// Get the SystemCertPool, continue with an empty pool on error
 		rootCAs, err := x509.SystemCertPool()
 		DoOrDie(err)

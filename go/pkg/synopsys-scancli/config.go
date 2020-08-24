@@ -57,6 +57,7 @@ type PolarisConfig struct {
 	Email    string
 	Password string
 	OSType   polarisapi.OSType
+	JavaHome string
 }
 
 type Config struct {

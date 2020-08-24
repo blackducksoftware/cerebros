@@ -9,7 +9,7 @@ import (
 )
 
 func Run() {
-	rootCmd := setupRootCommand()
+	rootCmd := SetupRootCommand()
 	if err := errors.Wrapf(rootCmd.Execute(), "run root command"); err != nil {
 		log.Fatalf("unable to run root command: %+v", err)
 		os.Exit(1)
@@ -20,7 +20,7 @@ type RootFlags struct {
 	LogLevel string
 }
 
-func setupRootCommand() *cobra.Command {
+func SetupRootCommand() *cobra.Command {
 	args := &RootFlags{}
 	rootCmd := &cobra.Command{
 		Use:   "polaris-api-cli",
@@ -33,8 +33,8 @@ func setupRootCommand() *cobra.Command {
 
 	rootCmd.PersistentFlags().StringVarP(&args.LogLevel, "verbosity", "v", "info", "log level; one of [info, debug, trace, warn, error, fatal, panic]")
 
-	rootCmd.AddCommand(setupScanCommand())
-	rootCmd.AddCommand(setupToolsCommand())
+	rootCmd.AddCommand(SetupScanCommand())
+	rootCmd.AddCommand(SetupToolsCommand())
 	//rootCmd.AddCommand(setupExampleCommand())
 
 	return rootCmd

@@ -106,7 +106,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	jb, err := polaris.NewScanner(workingDirectory, polarisURL, polarisToken)
+	jb, err := polaris.NewScanner(workingDirectory, polarisURL, polarisToken, "")
 	if err != nil {
 		panic(err)
 	}

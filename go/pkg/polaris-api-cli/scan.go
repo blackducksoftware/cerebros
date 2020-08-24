@@ -18,6 +18,7 @@ type ScanArgs struct {
 	UseLocalAnalysis bool
 	ProjectName      string
 	CLIPath          string
+	JavaHome         string
 }
 
 func getHomeDir() string {
@@ -29,7 +30,7 @@ func getHomeDir() string {
 	return user.HomeDir
 }
 
-func setupScanCommand() *cobra.Command {
+func SetupScanCommand() *cobra.Command {
 	args := &ScanArgs{}
 
 	command := &cobra.Command{
@@ -38,7 +39,7 @@ func setupScanCommand() *cobra.Command {
 		Long:  "run Polaris scan",
 		Args:  cobra.ExactArgs(0),
 		Run: func(cmd *cobra.Command, as []string) {
-			runScan(args)
+			RunScan(args)
 		},
 	}
 
@@ -61,16 +62,19 @@ func setupScanCommand() *cobra.Command {
 
 	command.Flags().StringVar(&args.CLIPath, "clipath", path.Join(getHomeDir(), "Downloads", "polaris_cli-macosx"), "path to look for polaris tools at, or download to if not found")
 
+	command.Flags().StringVar(&args.JavaHome, "javahome", path.Join(getHomeDir(), ".synopsys", "polaris", "coverity-analysis-tools", "cov_analysis-macosx-2020.06", "jdk11"), "JAVA_HOME")
+
 	return command
 }
 
-func runScan(args *ScanArgs) {
+func RunScan(args *ScanArgs) {
 	polarisConfig := &synopsys_scancli.PolarisConfig{
 		CLIPath:  args.CLIPath,
 		URL:      args.PolarisURL,
 		Email:    args.Email,
 		Password: args.Password,
 		OSType:   api.MustParseOSType(args.OSType),
+		JavaHome: args.JavaHome,
 	}
 	scanConfig := &synopsys_scancli.ScanConfig{
 		Key: args.ProjectName,

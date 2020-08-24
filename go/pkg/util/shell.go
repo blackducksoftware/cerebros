@@ -21,42 +21,30 @@ under the License.
 package util
 
 import (
-	"context"
+	"fmt"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
-	"path"
-	"time"
 )
 
-func ExecShellWithTimeout(shellCmd string, directory string, timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	execCmd := exec.CommandContext(ctx, "sh", "-c", shellCmd)
-	if len(directory) > 0 {
-		execCmd.Dir = path.Clean(directory)
+func CommandSetDirectory(cmd *exec.Cmd, directory string) {
+	if len(directory) == 0 {
+		currDirectory, _ := os.Executable()
+		cmd.Dir = currDirectory
+	} else {
+		cmd.Dir = directory
 	}
-
-	log.Infof("about to run %s in directory %s", execCmd.String(), directory)
-	err := RunCommandAndPrint(execCmd)
-
-	if ctx.Err() == context.DeadlineExceeded {
-		log.Errorf("command %s in %s timed out", execCmd.String(), directory)
-		return errors.Wrapf(ctx.Err(), "command '%s' timed out", execCmd.String())
-	}
-
-	if err != nil {
-		log.Errorf("failed to run %s in directory %s: %s", execCmd.String(), directory, err)
-		return err
-	}
-
-	log.Infof("successfully ran %s in directory %s", execCmd.String(), directory)
-	return nil
 }
 
-func RunCommandAndPrint(cmd *exec.Cmd) error {
+func CommandAddEnvironment(cmd *exec.Cmd, env map[string]string) {
+	cmd.Env = os.Environ()
+	for key, val := range env {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, val))
+	}
+}
+
+func CommandRunAndPrint(cmd *exec.Cmd) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	// can't use RunCommand(cmd) here -- attaching to os pipes interferes with cmd.CombinedOutput()

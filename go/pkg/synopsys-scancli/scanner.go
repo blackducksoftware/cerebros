@@ -69,7 +69,7 @@ func initPolaris(config *PolarisConfig) (*polaris.Scanner, error) {
 		return nil, errors.WithMessagef(err, "unable to get scan token")
 	}
 
-	return polaris.NewScanner(cliPath, config.URL, scanToken.Data.Attributes.AccessToken)
+	return polaris.NewScanner(cliPath, config.URL, scanToken.Data.Attributes.AccessToken, config.JavaHome)
 }
 
 func initBlackduck(config *BlackduckConfig) (*hubcli.ScanClient, error) {

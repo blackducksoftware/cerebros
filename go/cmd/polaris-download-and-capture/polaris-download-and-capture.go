@@ -111,7 +111,7 @@ func main() {
 	}
 	log.Infof("successfully got access token %s", authResp.Data.Attributes.AccessToken)
 
-	scanner, err := polaris.NewScanner(cliPath, config.PolarisURL, authResp.Data.Attributes.AccessToken)
+	scanner, err := polaris.NewScanner(cliPath, config.PolarisURL, authResp.Data.Attributes.AccessToken, "")
 	if err != nil {
 		panic(err)
 	}

@@ -21,12 +21,14 @@ under the License.
 package polaris
 
 import (
+	"context"
 	"github.com/blackducksoftware/cerebros/go/pkg/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
 	"time"
 )
@@ -41,20 +43,22 @@ var configureTimeout = 30 * time.Second
 var setupTimeout = 15 * time.Minute
 
 type Scanner struct {
-	URL     string
-	Token   string
-	CLIPath string
+	URL      string
+	Token    string
+	CLIPath  string
+	JavaHome string
 }
 
-func NewScanner(cliPath string, url string, token string) (*Scanner, error) {
+func NewScanner(cliPath string, url string, token string, javaHome string) (*Scanner, error) {
 	err := os.Setenv(polarisUserTimeout, "1")
 	if err != nil {
 		return nil, errors.WithMessagef(err, "unable to setenv for %s", polarisUserTimeout)
 	}
 	ps := &Scanner{
-		URL:     url,
-		Token:   token,
-		CLIPath: cliPath,
+		URL:      url,
+		Token:    token,
+		CLIPath:  cliPath,
+		JavaHome: javaHome,
 	}
 	if err := ps.configurePolarisCliWithAccessToken(); err != nil {
 		return nil, errors.WithMessagef(err, "unable to configure polaris cli with access token")
@@ -64,9 +68,13 @@ func NewScanner(cliPath string, url string, token string) (*Scanner, error) {
 
 func (ps *Scanner) Capture(capturePath string) (string, error) {
 	log.Infof("Running Polaris Capture on path %s", capturePath)
-	shellCmd := ps.polarisBinaryPath() + " capture"
+
+	ctx, cancel := context.WithTimeout(context.Background(), captureTimeout)
+	defer cancel()
+	command := exec.CommandContext(ctx, ps.polarisBinaryPath(), "capture")
+	util.CommandSetDirectory(command, capturePath)
 	start := time.Now()
-	err := util.ExecShellWithTimeout(shellCmd, capturePath, captureTimeout)
+	err := util.CommandRunAndPrint(command)
 	recordEventTime("polaris_capture", time.Now().Sub(start))
 	recordEvent("polaris_capture", err)
 	if err != nil {
@@ -104,16 +112,32 @@ func (ps *Scanner) CaptureAndScan(capturePath string, useLocalAnalysis bool) err
 }
 
 func (ps *Scanner) Scan(repoPath string, idirPath string, useLocalAnalysis bool) error {
-	shellCmd := ps.polarisBinaryPath() + " setup"
-	log.Infof("attempting to exec %s in %s", shellCmd, repoPath)
-	start := time.Now()
-	err := util.ExecShellWithTimeout(shellCmd, repoPath, setupTimeout)
-	recordEventTime("polaris_setup", time.Now().Sub(start))
-	recordEvent("polaris_setup", err)
+	err := ps.setup(repoPath)
 	if err != nil {
 		return err
 	}
 
+	err = ps.addCoverityParamsToPolarisYaml(repoPath, idirPath, useLocalAnalysis)
+	if err != nil {
+		return err
+	}
+
+	return ps.analyze(repoPath, useLocalAnalysis)
+}
+
+func (ps *Scanner) setup(path string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), setupTimeout)
+	defer cancel()
+	start := time.Now()
+	setupCommand := exec.CommandContext(ctx, ps.polarisBinaryPath(), "setup")
+	util.CommandSetDirectory(setupCommand, path)
+	err := util.CommandRunAndPrint(setupCommand)
+	recordEventTime("polaris_setup", time.Now().Sub(start))
+	recordEvent("polaris_setup", err)
+	return err
+}
+
+func (ps *Scanner) addCoverityParamsToPolarisYaml(repoPath string, idirPath string, useLocalAnalysis bool) error {
 	polarisYmlPath := path.Join(repoPath, "polaris.yml")
 	content, err := ioutil.ReadFile(polarisYmlPath)
 	recordEvent("read_polaris_yaml", err)
@@ -149,20 +173,32 @@ func (ps *Scanner) Scan(repoPath string, idirPath string, useLocalAnalysis bool)
 
 	err = ioutil.WriteFile(polarisYmlPath, coverityConfigYaml, os.FileMode(700))
 	recordEvent("write_coverity_config", err)
-	if err != nil {
-		return errors.Wrapf(err, "unable to write file %s", polarisYmlPath)
-	}
+	return errors.Wrapf(err, "unable to write file %s", polarisYmlPath)
+}
 
-	var analyzeCmd string
+func (ps *Scanner) analyze(path string, useLocalAnalysis bool) error {
+	var command *exec.Cmd
+	ctx, cancel := context.WithTimeout(context.Background(), analyzeTimeout)
+	defer cancel()
+
 	if useLocalAnalysis {
-		analyzeCmd = ps.polarisBinaryPath() + " analyze -w"
+		log.Debugf("using local analysis mode")
+		command = exec.CommandContext(ctx, ps.polarisBinaryPath(), "analyze", "-w")
 	} else {
-		analyzeCmd = ps.polarisBinaryPath() + " analyze"
+		log.Debugf("using central analysis mode")
+		command = exec.CommandContext(ctx, ps.polarisBinaryPath(), "analyze")
 	}
+	javaHome := ps.JavaHome
+	if javaHome != "" {
+		log.Debugf("setting JAVA_HOME for analyze command to '%s'", javaHome)
+		util.CommandAddEnvironment(command, map[string]string{"JAVA_HOME": javaHome})
+	}
+	util.CommandSetDirectory(command, path)
 	analyzeStart := time.Now()
-	err = util.ExecShellWithTimeout(analyzeCmd, repoPath, analyzeTimeout)
+	err := util.CommandRunAndPrint(command)
 	recordEventTime("polaris_analyze", time.Now().Sub(analyzeStart))
 	recordEvent("polaris_analyze", err)
+
 	return err
 }
 
@@ -176,9 +212,12 @@ func (ps *Scanner) configurePolarisCliWithAccessToken() error {
 		return errors.WithMessagef(err, "unable to set env var %s", polarisAccessToken)
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), configureTimeout)
+	defer cancel()
+	command := exec.CommandContext(ctx, ps.polarisBinaryPath(), "configure")
+	util.CommandSetDirectory(command, ps.CLIPath)
 	start := time.Now()
-	cmd := ps.polarisBinaryPath() + " configure"
-	err = util.ExecShellWithTimeout(cmd, ps.CLIPath, configureTimeout)
+	err = util.CommandRunAndPrint(command)
 	recordEventTime("polaris_configure", time.Now().Sub(start))
 	recordEvent("polaris_configure", err)
 	if err != nil {
