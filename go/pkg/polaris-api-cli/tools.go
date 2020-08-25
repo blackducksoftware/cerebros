@@ -64,11 +64,11 @@ func RunToolsDebug(args *ToolsDebugArgs) {
 
 	tools, err := polarisClient.GetTools(25)
 	DoOrDie(err)
-	fmt.Printf("GET to api/common/v0/tools: %+v", tools)
+	fmt.Printf("GET to api/common/v0/tools: %+v\n", tools)
 
 	toolIds, err := polarisClient.QueryV0DiscoveryFilterKeysIssuetoolidValues()
 	DoOrDie(err)
-	fmt.Printf("GET to api/query/v0/discovery/filter-keys/issue.tool.id/values: %s", toolIds)
+	fmt.Printf("GET to api/query/v0/discovery/filter-keys/issue.tool.id/values: %s\n", toolIds)
 }
 
 type PostToolsGetCurlCommandArgs struct {
