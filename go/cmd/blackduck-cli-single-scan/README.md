@@ -4,6 +4,6 @@
 
 2. fill out conf.json in this directory with the desired image and Blackduck information
 
-3. `go run scan-image.go conf.json`
+3. `go run blackduck-cli-single-scan.go conf.json`
 
 4. go to your Blackduck UI and verify that the scan worked

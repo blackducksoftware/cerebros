@@ -23,7 +23,6 @@ package docker
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -128,7 +127,7 @@ func (ip *ImagePuller) CreateImageInLocalDocker(img image) error {
 
 	if resp.StatusCode != 200 {
 		recordDockerError(createStage, "POST request failed", img, err)
-		return errors.New(fmt.Sprintf("Create may have failed for %s: status code %d, response %+v", imageURL, resp.StatusCode, resp))
+		return errors.Errorf("Create may have failed for %s: status code %d, response %+v", imageURL, resp.StatusCode, resp)
 	}
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
@@ -195,14 +194,13 @@ func (ip *ImagePuller) inspectImage(img image) (*PullResult, error) {
 
 	if resp.StatusCode != 200 {
 		//recordDockerError(createStage, "GET request failed", img, err)
-		return nil, errors.New(fmt.Sprintf("Inspect may have failed for %s: status code %d, response %+v", imageURL, resp.StatusCode, resp))
+		return nil, errors.Errorf("Inspect may have failed for %s: status code %d, response %+v", imageURL, resp.StatusCode, resp)
 	}
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		//recordDockerError(createStage, "unable to read GET response body", img, err)
-		log.Errorf("unable to read response body for %s: %s", imageURL, err.Error())
-		return nil, err
+		return nil, errors.Wrapf(err, "unable to read response body for %s: %s", imageURL, err.Error())
 	}
 	log.Debugf("body of GET response from %s: %s", imageURL, string(bodyBytes))
 
@@ -215,7 +213,7 @@ func (ip *ImagePuller) inspectImage(img image) (*PullResult, error) {
 	//recordDockerCreateDuration(time.Now().Sub(start))
 
 	if len(response.RepoDigests) == 0 {
-		return nil, errors.New(fmt.Sprintf("found 0 repo digests for %s", img.PullSpec))
+		return nil, errors.Errorf("found 0 repo digests for %s", img.PullSpec)
 	}
 	repo, digest, err := parseRepoDigest(response.RepoDigests[0])
 	if err != nil {
@@ -223,7 +221,7 @@ func (ip *ImagePuller) inspectImage(img image) (*PullResult, error) {
 	}
 
 	if len(response.RepoTags) == 0 {
-		return nil, errors.New(fmt.Sprintf("found 0 repo digests for %s", img.PullSpec))
+		return nil, errors.Errorf("found 0 repo tags for %s", img.PullSpec)
 	}
 	repo, tag, err := parseRepoTag(response.RepoTags[0])
 	if err != nil {
@@ -250,7 +248,7 @@ func (ip *ImagePuller) SaveImageToTar(img image) error {
 		recordDockerError(getStage, "GET request failed", img, err)
 		return errors.Wrapf(err, "GET request to %s failed", url)
 	} else if resp.StatusCode != http.StatusOK {
-		err = errors.New(fmt.Sprintf("docker GET failed: received status != 200 from %s: %s", url, resp.Status))
+		err = errors.Errorf("docker GET failed: received status != 200 from %s: %s", url, resp.Status)
 		recordDockerError(getStage, "GET request failed", img, err)
 		return err
 	}
