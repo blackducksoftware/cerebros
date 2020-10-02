@@ -1,4 +1,4 @@
-package polaris_api_cli
+package api_cli
 
 import (
 	"crypto/tls"

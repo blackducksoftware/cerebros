@@ -21,7 +21,7 @@ under the License.
 package main
 
 import (
-	polaris_api_cli "github.com/blackducksoftware/cerebros/go/pkg/polaris-api-cli"
+	polaris_api_cli "github.com/blackducksoftware/cerebros/go/pkg/polaris/api-cli"
 )
 
 func main() {

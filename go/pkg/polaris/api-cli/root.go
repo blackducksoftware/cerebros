@@ -1,4 +1,4 @@
-package polaris_api_cli
+package api_cli
 
 import (
 	"os"
@@ -35,6 +35,8 @@ func SetupRootCommand() *cobra.Command {
 
 	rootCmd.AddCommand(SetupScanCommand())
 	rootCmd.AddCommand(SetupToolsCommand())
+	rootCmd.AddCommand(SetupCosCommand())
+	rootCmd.AddCommand(SetupAuthCommand())
 	//rootCmd.AddCommand(setupExampleCommand())
 
 	return rootCmd
