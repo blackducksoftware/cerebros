@@ -40,7 +40,7 @@ func SetupAuthCommand() *cobra.Command {
 }
 
 func runAuth(args *AuthArgs) {
-	log.Infof("cos args: %+v", args)
+	log.Infof("auth args: %+v", args)
 
 	client := api.NewClient(args.PolarisURL, args.Email, args.Password)
 
