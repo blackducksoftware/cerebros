@@ -4,7 +4,6 @@ go 1.13
 
 require (
 	cloud.google.com/go v0.38.0
-	github.com/blackducksoftware/hub-client-go v0.9.6-0.20200210205356-a97c875558e7
 	github.com/go-resty/resty/v2 v2.2.0
 	github.com/golang/protobuf v1.3.4 // indirect
 	github.com/googleapis/gnostic v0.4.1 // indirect
